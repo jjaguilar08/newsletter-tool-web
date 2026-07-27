@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
 // Placeholder only - proves the ProtectedRoute guard works end to end.
@@ -9,6 +10,9 @@ export function DashboardPage() {
         <main>
             <h1>Dashboard</h1>
             <p>Signed in as {user?.name}</p>
+            <nav>
+                <Link to="/subscribers">Subscribers</Link>
+            </nav>
             <button type="button" onClick={() => void logout()}>
                 Log out
             </button>

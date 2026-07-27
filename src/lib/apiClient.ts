@@ -73,5 +73,7 @@ async function primeCsrfCookie(): Promise<void> {
 export const apiClient = {
     get: <T>(path: string) => request<T>(path, 'GET'),
     post: <T>(path: string, body?: unknown) => request<T>(path, 'POST', body),
+    put: <T>(path: string, body?: unknown) => request<T>(path, 'PUT', body),
+    delete: <T = void>(path: string) => request<T>(path, 'DELETE'),
     primeCsrfCookie,
 }
