@@ -23,6 +23,7 @@ function formatDate(value: string | null): string {
 // campaign has actually started sending.
 export function CampaignViewModal({ campaign, onClose }: CampaignViewModalProps) {
     const [page, setPage] = useState(1)
+    const [refreshKey, setRefreshKey] = useState(0)
     const [sends, setSends] = useState<CampaignSend[] | null>(null)
     const [meta, setMeta] = useState<PaginationMeta | null>(null)
     const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>('loading')
@@ -49,11 +50,16 @@ export function CampaignViewModal({ campaign, onClose }: CampaignViewModalProps)
         return () => {
             active = false
         }
-    }, [campaign.id, page])
+    }, [campaign.id, page, refreshKey])
 
     function goToPage(updater: (current: number) => number) {
         setLoadState('loading')
         setPage(updater)
+    }
+
+    function retryLoad() {
+        setLoadState('loading')
+        setRefreshKey((key) => key + 1)
     }
 
     return (
@@ -65,7 +71,14 @@ export function CampaignViewModal({ campaign, onClose }: CampaignViewModalProps)
 
             {loadState === 'loading' && <p>Loading send log…</p>}
 
-            {loadState === 'error' && <p role="alert">{loadError}</p>}
+            {loadState === 'error' && (
+                <div>
+                    <p role="alert">{loadError}</p>
+                    <button type="button" onClick={retryLoad}>
+                        Retry
+                    </button>
+                </div>
+            )}
 
             {loadState === 'ready' && sends !== null && sends.length === 0 && <p>No sends yet.</p>}
 

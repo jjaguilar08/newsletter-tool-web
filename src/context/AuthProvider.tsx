@@ -1,22 +1,8 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { AuthContext } from './AuthContext'
-import { apiClient, ApiError } from '../lib/apiClient'
+import { apiClient } from '../lib/apiClient'
+import { fetchCurrentUser } from '../lib/session'
 import type { User } from '../types/user'
-
-// A missing/wrong-role session isn't an error here, just "not logged in" -
-// GET /api/user 401s when there's no session and 403s for a non-staff role
-// (see PROJECT_NOTES.md), both of which mean "treat as logged out" for the
-// SPA rather than something to surface to the user.
-async function fetchCurrentUser(): Promise<User | null> {
-    try {
-        return await apiClient.get<User>('/api/user')
-    } catch (error) {
-        if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
-            return null
-        }
-        throw error
-    }
-}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null)
@@ -29,6 +15,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .then((current) => {
                 if (active) {
                     setUser(current)
+                }
+            })
+            .catch(() => {
+                // A real failure here (500, network error) isn't 401/403, so
+                // fetchCurrentUser() rejects rather than resolving null - but
+                // this initial check has nowhere to surface a distinct error
+                // state, and ProtectedRoute already treats user === null as
+                // "not logged in". Falling back to logged-out here (instead
+                // of leaving the rejection dangling) keeps that the one
+                // consistent behavior for "couldn't confirm you're logged
+                // in", same as 401/403.
+                if (active) {
+                    setUser(null)
                 }
             })
             .finally(() => {

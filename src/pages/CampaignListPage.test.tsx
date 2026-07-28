@@ -101,6 +101,18 @@ describe('CampaignListPage', () => {
         expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument()
     })
 
+    it('shows the generic fallback message on a real network failure, not just a 4xx/5xx', async () => {
+        mockLoggedIn()
+        server.use(http.get(`${API_URL}/api/campaigns`, () => HttpResponse.error()))
+
+        renderApp('/campaigns')
+
+        expect(await screen.findByRole('alert')).toHaveTextContent(
+            'Something went wrong loading campaigns.',
+        )
+        expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument()
+    })
+
     it('sends the status filter as a ?status= param', async () => {
         mockLoggedIn()
         const requestedStatuses: (string | null)[] = []
@@ -487,6 +499,43 @@ describe('CampaignListPage - schedule', () => {
         expect(scheduleCalls).toBe(0)
     })
 
+    it('cancelling the confirm stage returns to the form without submitting', async () => {
+        mockLoggedIn()
+        let scheduleCalls = 0
+        server.use(
+            http.get(`${API_URL}/api/campaigns`, () =>
+                HttpResponse.json(makePage([makeCampaign()])),
+            ),
+            http.post(`${API_URL}/api/campaigns/1/schedule`, () => {
+                scheduleCalls += 1
+                return HttpResponse.json({ message: 'Campaign scheduled.', data: makeCampaign() })
+            }),
+        )
+
+        const user = userEvent.setup()
+        renderApp('/campaigns')
+
+        await screen.findByText('July Newsletter')
+        await user.click(screen.getByRole('button', { name: 'Schedule' }))
+
+        const dialog = await screen.findByRole('dialog', { name: 'Schedule campaign' })
+        const futureDate = toDatetimeLocalValue(new Date(Date.now() + 24 * 60 * 60 * 1000))
+        fireEvent.change(within(dialog).getByLabelText('Send at'), {
+            target: { value: futureDate },
+        })
+        await user.click(within(dialog).getByRole('button', { name: 'Continue' }))
+
+        const confirmDialog = await screen.findByRole('dialog', { name: 'Schedule campaign' })
+        await user.click(within(confirmDialog).getByRole('button', { name: 'Cancel' }))
+
+        // Back on the form stage (not closed entirely), with the chosen date
+        // still there and nothing sent to the backend.
+        const formDialog = await screen.findByRole('dialog', { name: 'Schedule campaign' })
+        expect(within(formDialog).getByLabelText('Send at')).toHaveValue(futureDate)
+        expect(within(formDialog).getByRole('button', { name: 'Continue' })).toBeInTheDocument()
+        expect(scheduleCalls).toBe(0)
+    })
+
     it('confirms before submitting, then schedules and reflects the new status', async () => {
         mockLoggedIn()
         let scheduled = false
@@ -593,6 +642,36 @@ describe('CampaignListPage - send log', () => {
 
         const dialog = await screen.findByRole('dialog', { name: 'View campaign' })
         expect(await within(dialog).findByText('Mailbox does not exist.')).toBeInTheDocument()
+    })
+
+    it('shows an error when the send log request fails, and Retry recovers', async () => {
+        mockLoggedIn()
+        const sentCampaign = makeCampaign({ status: 'sent', sent_at: '2026-02-01T00:00:00+00:00' })
+        let calls = 0
+        server.use(
+            http.get(`${API_URL}/api/campaigns`, () => HttpResponse.json(makePage([sentCampaign]))),
+            http.get(`${API_URL}/api/campaigns/1/sends`, () => {
+                calls += 1
+                if (calls === 1) {
+                    return HttpResponse.json({ message: 'Server error' }, { status: 500 })
+                }
+                return HttpResponse.json(makePage([makeSend()]))
+            }),
+        )
+
+        const user = userEvent.setup()
+        renderApp('/campaigns')
+
+        await screen.findByText('July Newsletter')
+        await user.click(screen.getByRole('button', { name: 'View' }))
+
+        const dialog = await screen.findByRole('dialog', { name: 'View campaign' })
+        expect(await within(dialog).findByRole('alert')).toHaveTextContent('Server error')
+
+        await user.click(within(dialog).getByRole('button', { name: 'Retry' }))
+
+        expect(await within(dialog).findByText('reader@example.com')).toBeInTheDocument()
+        expect(calls).toBe(2)
     })
 
     it('shows an empty state when a campaign has no sends yet', async () => {

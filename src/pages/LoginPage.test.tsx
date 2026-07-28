@@ -64,4 +64,24 @@ describe('login', () => {
         )
         expect(screen.getByRole('heading', { name: 'Log in' })).toBeInTheDocument()
     })
+
+    it('shows the generic fallback message on a real network failure, not just a 4xx/5xx', async () => {
+        server.use(
+            http.get(`${API_URL}/api/user`, () => new HttpResponse(null, { status: 401 })),
+            http.post(`${API_URL}/api/login`, () => HttpResponse.error()),
+        )
+
+        renderApp('/login')
+
+        await screen.findByRole('heading', { name: 'Log in' })
+
+        await userEvent.type(screen.getByLabelText('Email'), mockUser.email)
+        await userEvent.type(screen.getByLabelText('Password'), 'password')
+        await userEvent.click(screen.getByRole('button', { name: 'Log in' }))
+
+        expect(await screen.findByRole('alert')).toHaveTextContent(
+            'Something went wrong. Please try again.',
+        )
+        expect(screen.getByRole('heading', { name: 'Log in' })).toBeInTheDocument()
+    })
 })

@@ -48,9 +48,7 @@ describe('SubscriberListPage', () => {
         mockLoggedIn()
         const subscriber = makeSubscriber()
         server.use(
-            http.get(`${API_URL}/api/subscribers`, () =>
-                HttpResponse.json(makePage([subscriber])),
-            ),
+            http.get(`${API_URL}/api/subscribers`, () => HttpResponse.json(makePage([subscriber]))),
         )
 
         renderApp('/subscribers')
@@ -64,9 +62,7 @@ describe('SubscriberListPage', () => {
 
     it('shows an empty state when there are no subscribers', async () => {
         mockLoggedIn()
-        server.use(
-            http.get(`${API_URL}/api/subscribers`, () => HttpResponse.json(makePage([]))),
-        )
+        server.use(http.get(`${API_URL}/api/subscribers`, () => HttpResponse.json(makePage([]))))
 
         renderApp('/subscribers')
 
@@ -89,6 +85,18 @@ describe('SubscriberListPage', () => {
         expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument()
     })
 
+    it('shows the generic fallback message on a real network failure, not just a 4xx/5xx', async () => {
+        mockLoggedIn()
+        server.use(http.get(`${API_URL}/api/subscribers`, () => HttpResponse.error()))
+
+        renderApp('/subscribers')
+
+        expect(await screen.findByRole('alert')).toHaveTextContent(
+            'Something went wrong loading subscribers.',
+        )
+        expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument()
+    })
+
     it('caps the search input at 255 characters and omits Retry for a 422 load error', async () => {
         mockLoggedIn()
         server.use(
@@ -96,7 +104,9 @@ describe('SubscriberListPage', () => {
                 HttpResponse.json(
                     {
                         message: 'The search field must not be greater than 255 characters.',
-                        errors: { search: ['The search field must not be greater than 255 characters.'] },
+                        errors: {
+                            search: ['The search field must not be greater than 255 characters.'],
+                        },
                     },
                     { status: 422 },
                 ),
@@ -167,7 +177,9 @@ describe('SubscriberListPage', () => {
         server.use(
             http.get(`${API_URL}/api/subscribers`, () =>
                 HttpResponse.json(
-                    created ? makePage([makeSubscriber({ id: 2, email: 'new@example.com' })]) : makePage([]),
+                    created
+                        ? makePage([makeSubscriber({ id: 2, email: 'new@example.com' })])
+                        : makePage([]),
                 ),
             ),
             http.post(`${API_URL}/api/subscribers`, async ({ request }) => {
