@@ -3,6 +3,7 @@ import type { Paginated } from '../types/pagination'
 import type {
     Campaign,
     CampaignInput,
+    CampaignPreview,
     CampaignUpdateInput,
     ListCampaignsParams,
 } from '../types/campaign'
@@ -35,4 +36,27 @@ export async function updateCampaign(id: number, data: CampaignUpdateInput): Pro
 
 export function deleteCampaign(id: number): Promise<void> {
     return apiClient.delete(`/api/campaigns/${id}`)
+}
+
+// Not wrapped in { data: ... } - CampaignController::preview() returns
+// { subject, html } directly.
+export function previewCampaign(id: number): Promise<CampaignPreview> {
+    return apiClient.get<CampaignPreview>(`/api/campaigns/${id}/preview`)
+}
+
+// send()/schedule() responses are { message, data: ... }, not the bare
+// { data: ... } store/update use - unwrapped the same way regardless.
+export async function sendCampaign(id: number): Promise<Campaign> {
+    const response = await apiClient.post<{ message: string; data: Campaign }>(
+        `/api/campaigns/${id}/send`,
+    )
+    return response.data
+}
+
+export async function scheduleCampaign(id: number, scheduledAt: string): Promise<Campaign> {
+    const response = await apiClient.post<{ message: string; data: Campaign }>(
+        `/api/campaigns/${id}/schedule`,
+        { scheduled_at: scheduledAt },
+    )
+    return response.data
 }

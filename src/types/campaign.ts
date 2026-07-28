@@ -30,3 +30,10 @@ export interface ListCampaignsParams {
     page?: number
     status?: CampaignStatus
 }
+
+// Matches CampaignController::preview()'s response shape exactly - not
+// wrapped in { data: ... } like store/update.
+export interface CampaignPreview {
+    subject: string
+    html: string
+}

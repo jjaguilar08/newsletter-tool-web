@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
-import { deleteCampaign, listCampaigns } from '../api/campaigns'
+import { deleteCampaign, listCampaigns, sendCampaign } from '../api/campaigns'
 import { ApiError } from '../lib/apiClient'
 import { CampaignFormModal } from '../components/CampaignFormModal'
+import { CampaignPreviewModal } from '../components/CampaignPreviewModal'
+import { CampaignScheduleModal } from '../components/CampaignScheduleModal'
 import { CampaignStatusBadge } from '../components/CampaignStatusBadge'
 import { CampaignViewModal } from '../components/CampaignViewModal'
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -14,11 +16,18 @@ const STATUS_FILTER_OPTIONS: CampaignStatus[] = ['draft', 'scheduled', 'sending'
 // UI shouldn't offer Edit/Delete on a row the backend will reject anyway.
 const EDITABLE_STATUSES: CampaignStatus[] = ['draft', 'scheduled']
 
+// Preview reads whatever content is currently saved, so it's only useful
+// while a campaign can still change (same statuses as Edit) - Sending/Sent
+// rows show the frozen content directly via CampaignViewModal instead.
+const PREVIEWABLE_STATUSES: CampaignStatus[] = ['draft', 'scheduled']
+
 type FormModalState = { mode: 'create' } | { mode: 'edit'; campaign: Campaign }
 
+// toLocaleString (date + time), not toLocaleDateString - scheduled_at's time
+// component is the actual point of the Schedule feature, not just its date.
 function formatDate(value: string | null): string {
     if (!value) return '—'
-    return new Date(value).toLocaleDateString()
+    return new Date(value).toLocaleString()
 }
 
 export function CampaignListPage() {
@@ -34,9 +43,14 @@ export function CampaignListPage() {
 
     const [formModal, setFormModal] = useState<FormModalState | null>(null)
     const [viewTarget, setViewTarget] = useState<Campaign | null>(null)
+    const [previewTarget, setPreviewTarget] = useState<Campaign | null>(null)
+    const [scheduleTarget, setScheduleTarget] = useState<Campaign | null>(null)
     const [deleteTarget, setDeleteTarget] = useState<Campaign | null>(null)
     const [isDeleting, setIsDeleting] = useState(false)
     const [deleteError, setDeleteError] = useState<string | null>(null)
+    const [sendTarget, setSendTarget] = useState<Campaign | null>(null)
+    const [isSending, setIsSending] = useState(false)
+    const [sendError, setSendError] = useState<string | null>(null)
 
     useEffect(() => {
         let active = true
@@ -79,14 +93,12 @@ export function CampaignListPage() {
     }
 
     function retryLoad() {
-        setLoadState('loading')
-        setRefreshKey((key) => key + 1)
+        refreshList()
     }
 
     function handleSaved() {
         setFormModal(null)
-        setLoadState('loading')
-        setRefreshKey((key) => key + 1)
+        refreshList()
     }
 
     async function handleConfirmDelete() {
@@ -104,13 +116,48 @@ export function CampaignListPage() {
             if (campaigns !== null && campaigns.length === 1 && page > 1) {
                 goToPage((current) => current - 1)
             } else {
-                setLoadState('loading')
-                setRefreshKey((key) => key + 1)
+                refreshList()
             }
         } catch (error) {
             setDeleteError(error instanceof ApiError ? error.message : 'Failed to delete campaign.')
         } finally {
             setIsDeleting(false)
+        }
+    }
+
+    function refreshList() {
+        setLoadState('loading')
+        setRefreshKey((key) => key + 1)
+    }
+
+    function handleScheduled() {
+        setScheduleTarget(null)
+        refreshList()
+    }
+
+    async function handleConfirmSend() {
+        if (!sendTarget) return
+
+        setIsSending(true)
+        setSendError(null)
+
+        try {
+            await sendCampaign(sendTarget.id)
+            setSendTarget(null)
+            refreshList()
+        } catch (error) {
+            // A 409 here means the campaign was no longer a draft by the
+            // time this click landed (already sent, or claimed by the
+            // scheduler) - the backend's message already says exactly that,
+            // so it's shown as-is rather than a generic failure. Either way
+            // the list is stale, so refresh it in the background without
+            // closing the dialog - the user still sees why nothing happened.
+            setSendError(error instanceof ApiError ? error.message : 'Failed to send campaign.')
+            if (error instanceof ApiError && error.status === 409) {
+                refreshList()
+            }
+        } finally {
+            setIsSending(false)
         }
     }
 
@@ -178,6 +225,8 @@ export function CampaignListPage() {
                         <tbody>
                             {campaigns.map((campaign) => {
                                 const isEditable = EDITABLE_STATUSES.includes(campaign.status)
+                                const isPreviewable = PREVIEWABLE_STATUSES.includes(campaign.status)
+                                const isDraft = campaign.status === 'draft'
                                 return (
                                     <tr key={campaign.id}>
                                         <td>{campaign.subject}</td>
@@ -187,6 +236,14 @@ export function CampaignListPage() {
                                         <td>{formatDate(campaign.scheduled_at)}</td>
                                         <td>{formatDate(campaign.sent_at)}</td>
                                         <td>
+                                            {isPreviewable && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setPreviewTarget(campaign)}
+                                                >
+                                                    Preview
+                                                </button>
+                                            )}
                                             {isEditable ? (
                                                 <>
                                                     <button
@@ -214,6 +271,25 @@ export function CampaignListPage() {
                                                 >
                                                     View
                                                 </button>
+                                            )}
+                                            {isDraft && (
+                                                <>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setScheduleTarget(campaign)}
+                                                    >
+                                                        Schedule
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setSendError(null)
+                                                            setSendTarget(campaign)
+                                                        }}
+                                                    >
+                                                        Send Now
+                                                    </button>
+                                                </>
                                             )}
                                         </td>
                                     </tr>
@@ -256,6 +332,33 @@ export function CampaignListPage() {
 
             {viewTarget && (
                 <CampaignViewModal campaign={viewTarget} onClose={() => setViewTarget(null)} />
+            )}
+
+            {previewTarget && (
+                <CampaignPreviewModal
+                    campaign={previewTarget}
+                    onClose={() => setPreviewTarget(null)}
+                />
+            )}
+
+            {scheduleTarget && (
+                <CampaignScheduleModal
+                    campaign={scheduleTarget}
+                    onClose={() => setScheduleTarget(null)}
+                    onScheduled={handleScheduled}
+                />
+            )}
+
+            {sendTarget && (
+                <ConfirmDialog
+                    title="Send campaign"
+                    message={`Send "${sendTarget.subject}" now? This will email every subscribed recipient and cannot be undone.`}
+                    confirmLabel="Send Now"
+                    isConfirming={isSending}
+                    error={sendError}
+                    onConfirm={() => void handleConfirmSend()}
+                    onCancel={() => setSendTarget(null)}
+                />
             )}
 
             {deleteTarget && (

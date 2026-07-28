@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { server } from '../test/server'
 import { mockUser, renderApp } from '../test/utils'
 import type { Campaign } from '../types/campaign'
+import type { CampaignSend } from '../types/campaignSend'
 import type { Paginated } from '../types/pagination'
 
 const API_URL = import.meta.env.VITE_API_URL
@@ -24,24 +25,39 @@ function makeCampaign(overrides: Partial<Campaign> = {}): Campaign {
     }
 }
 
-function makePage(
-    campaigns: Campaign[],
-    metaOverrides: Partial<Paginated<Campaign>['meta']> = {},
-): Paginated<Campaign> {
+function makePage<T>(items: T[], metaOverrides: Partial<Paginated<T>['meta']> = {}): Paginated<T> {
     return {
-        data: campaigns,
+        data: items,
         meta: {
             current_page: 1,
             last_page: 1,
             per_page: 15,
-            total: campaigns.length,
+            total: items.length,
             ...metaOverrides,
         },
     }
 }
 
+function makeSend(overrides: Partial<CampaignSend> = {}): CampaignSend {
+    return {
+        id: 1,
+        subscriber_email: 'reader@example.com',
+        status: 'sent',
+        sent_at: '2026-02-01T00:00:00+00:00',
+        error_message: null,
+        ...overrides,
+    }
+}
+
 function mockLoggedIn() {
     server.use(http.get(`${API_URL}/api/user`, () => HttpResponse.json(mockUser)))
+}
+
+// datetime-local inputs take "YYYY-MM-DDTHH:mm" in local time - built from
+// getters rather than toISOString() so it isn't accidentally UTC-shifted.
+function toDatetimeLocalValue(date: Date): string {
+    const pad = (value: number) => String(value).padStart(2, '0')
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
 describe('CampaignListPage', () => {
@@ -309,5 +325,291 @@ describe('CampaignListPage', () => {
         await screen.findByText('Page 1 Campaign')
 
         expect(requestedPages).toEqual(['1', '2', '1'])
+    })
+})
+
+describe('CampaignListPage - preview', () => {
+    it('renders the returned html in a sandboxed iframe with no script execution allowed', async () => {
+        mockLoggedIn()
+        server.use(
+            http.get(`${API_URL}/api/campaigns`, () =>
+                HttpResponse.json(makePage([makeCampaign()])),
+            ),
+            http.get(`${API_URL}/api/campaigns/1/preview`, () =>
+                HttpResponse.json({
+                    subject: 'July Newsletter',
+                    html: '<p>Hello <strong>world</strong></p>',
+                }),
+            ),
+        )
+
+        const user = userEvent.setup()
+        renderApp('/campaigns')
+
+        await screen.findByText('July Newsletter')
+        await user.click(screen.getByRole('button', { name: 'Preview' }))
+
+        const dialog = await screen.findByRole('dialog', { name: 'Preview campaign' })
+        const iframe = await within(dialog).findByTitle<HTMLIFrameElement>('Campaign preview')
+        expect(iframe.srcdoc).toBe('<p>Hello <strong>world</strong></p>')
+        expect(iframe.getAttribute('sandbox')).toBe('')
+    })
+
+    it('shows an error when the preview request fails', async () => {
+        mockLoggedIn()
+        server.use(
+            http.get(`${API_URL}/api/campaigns`, () =>
+                HttpResponse.json(makePage([makeCampaign()])),
+            ),
+            http.get(`${API_URL}/api/campaigns/1/preview`, () =>
+                HttpResponse.json({ message: 'Server error' }, { status: 500 }),
+            ),
+        )
+
+        const user = userEvent.setup()
+        renderApp('/campaigns')
+
+        await screen.findByText('July Newsletter')
+        await user.click(screen.getByRole('button', { name: 'Preview' }))
+
+        const dialog = await screen.findByRole('dialog', { name: 'Preview campaign' })
+        expect(await within(dialog).findByRole('alert')).toHaveTextContent('Server error')
+    })
+})
+
+describe('CampaignListPage - send now', () => {
+    it('requires confirmation, then sends and reflects the new status', async () => {
+        mockLoggedIn()
+        let sent = false
+        server.use(
+            http.get(`${API_URL}/api/campaigns`, () =>
+                HttpResponse.json(makePage([makeCampaign({ status: sent ? 'sending' : 'draft' })])),
+            ),
+            http.post(`${API_URL}/api/campaigns/1/send`, () => {
+                sent = true
+                return HttpResponse.json({
+                    message: 'Campaign send started.',
+                    data: makeCampaign({ status: 'sending' }),
+                })
+            }),
+        )
+
+        const user = userEvent.setup()
+        renderApp('/campaigns')
+
+        await screen.findByText('July Newsletter')
+        await user.click(screen.getByRole('button', { name: 'Send Now' }))
+
+        const dialog = await screen.findByRole('dialog', { name: 'Send campaign' })
+        await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        expect(sent).toBe(false)
+
+        await user.click(screen.getByRole('button', { name: 'Send Now' }))
+        const confirmDialog = await screen.findByRole('dialog', { name: 'Send campaign' })
+        await user.click(within(confirmDialog).getByRole('button', { name: 'Send Now' }))
+
+        await waitFor(() => {
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        })
+        const row = await screen.findByText('July Newsletter').then((el) => el.closest('tr'))
+        expect(within(row as HTMLElement).getByText('Sending')).toBeInTheDocument()
+    })
+
+    it('surfaces the backend 409 message when the campaign already started sending', async () => {
+        mockLoggedIn()
+        let getCalls = 0
+        server.use(
+            http.get(`${API_URL}/api/campaigns`, () => {
+                getCalls += 1
+                return HttpResponse.json(
+                    makePage([makeCampaign({ status: getCalls > 1 ? 'sending' : 'draft' })]),
+                )
+            }),
+            http.post(`${API_URL}/api/campaigns/1/send`, () =>
+                HttpResponse.json(
+                    { message: 'Only a draft campaign can be sent.' },
+                    { status: 409 },
+                ),
+            ),
+        )
+
+        const user = userEvent.setup()
+        renderApp('/campaigns')
+
+        await screen.findByText('July Newsletter')
+        await user.click(screen.getByRole('button', { name: 'Send Now' }))
+
+        const dialog = await screen.findByRole('dialog', { name: 'Send campaign' })
+        await user.click(within(dialog).getByRole('button', { name: 'Send Now' }))
+
+        expect(await within(dialog).findByRole('alert')).toHaveTextContent(
+            'Only a draft campaign can be sent.',
+        )
+
+        // The list is refreshed in the background so the stale "Draft"
+        // status doesn't linger once we know it's wrong.
+        await waitFor(() => {
+            expect(getCalls).toBeGreaterThan(1)
+        })
+    })
+})
+
+describe('CampaignListPage - schedule', () => {
+    it('rejects a past date client-side without hitting the network', async () => {
+        mockLoggedIn()
+        let scheduleCalls = 0
+        server.use(
+            http.get(`${API_URL}/api/campaigns`, () =>
+                HttpResponse.json(makePage([makeCampaign()])),
+            ),
+            http.post(`${API_URL}/api/campaigns/1/schedule`, () => {
+                scheduleCalls += 1
+                return HttpResponse.json({ message: 'Campaign scheduled.', data: makeCampaign() })
+            }),
+        )
+
+        const user = userEvent.setup()
+        renderApp('/campaigns')
+
+        await screen.findByText('July Newsletter')
+        await user.click(screen.getByRole('button', { name: 'Schedule' }))
+
+        const dialog = await screen.findByRole('dialog', { name: 'Schedule campaign' })
+        fireEvent.change(within(dialog).getByLabelText('Send at'), {
+            target: { value: '2020-01-01T00:00' },
+        })
+        await user.click(within(dialog).getByRole('button', { name: 'Continue' }))
+
+        expect(await within(dialog).findByRole('alert')).toHaveTextContent(
+            'Scheduled time must be in the future.',
+        )
+        expect(scheduleCalls).toBe(0)
+    })
+
+    it('confirms before submitting, then schedules and reflects the new status', async () => {
+        mockLoggedIn()
+        let scheduled = false
+        let requestedScheduledAt: string | null = null
+        server.use(
+            http.get(`${API_URL}/api/campaigns`, () =>
+                HttpResponse.json(
+                    makePage([makeCampaign({ status: scheduled ? 'scheduled' : 'draft' })]),
+                ),
+            ),
+            http.post(`${API_URL}/api/campaigns/1/schedule`, async ({ request }) => {
+                const body = (await request.json()) as { scheduled_at: string }
+                requestedScheduledAt = body.scheduled_at
+                scheduled = true
+                return HttpResponse.json({
+                    message: 'Campaign scheduled.',
+                    data: makeCampaign({ status: 'scheduled', scheduled_at: body.scheduled_at }),
+                })
+            }),
+        )
+
+        const user = userEvent.setup()
+        renderApp('/campaigns')
+
+        await screen.findByText('July Newsletter')
+        await user.click(screen.getByRole('button', { name: 'Schedule' }))
+
+        const dialog = await screen.findByRole('dialog', { name: 'Schedule campaign' })
+        const futureDate = toDatetimeLocalValue(new Date(Date.now() + 24 * 60 * 60 * 1000))
+        fireEvent.change(within(dialog).getByLabelText('Send at'), {
+            target: { value: futureDate },
+        })
+        await user.click(within(dialog).getByRole('button', { name: 'Continue' }))
+
+        const confirmDialog = await screen.findByRole('dialog', { name: 'Schedule campaign' })
+        await user.click(within(confirmDialog).getByRole('button', { name: 'Schedule' }))
+
+        await waitFor(() => {
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        })
+        expect(requestedScheduledAt).not.toBeNull()
+        const row = await screen.findByText('July Newsletter').then((el) => el.closest('tr'))
+        expect(within(row as HTMLElement).getByText('Scheduled')).toBeInTheDocument()
+    })
+})
+
+describe('CampaignListPage - send log', () => {
+    it('renders the send log and paginates it', async () => {
+        mockLoggedIn()
+        const sentCampaign = makeCampaign({ status: 'sent', sent_at: '2026-02-01T00:00:00+00:00' })
+        server.use(
+            http.get(`${API_URL}/api/campaigns`, () => HttpResponse.json(makePage([sentCampaign]))),
+            http.get(`${API_URL}/api/campaigns/1/sends`, ({ request }) => {
+                const page = new URL(request.url).searchParams.get('page') ?? '1'
+                const send =
+                    page === '2'
+                        ? makeSend({ id: 2, subscriber_email: 'page2@example.com' })
+                        : makeSend({ id: 1, subscriber_email: 'page1@example.com' })
+                return HttpResponse.json(
+                    makePage([send], { current_page: Number(page), last_page: 2, total: 2 }),
+                )
+            }),
+        )
+
+        const user = userEvent.setup()
+        renderApp('/campaigns')
+
+        await screen.findByText('July Newsletter')
+        await user.click(screen.getByRole('button', { name: 'View' }))
+
+        const dialog = await screen.findByRole('dialog', { name: 'View campaign' })
+        expect(await within(dialog).findByText('page1@example.com')).toBeInTheDocument()
+        expect(within(dialog).getByRole('button', { name: 'Previous' })).toBeDisabled()
+
+        await user.click(within(dialog).getByRole('button', { name: 'Next' }))
+
+        expect(await within(dialog).findByText('page2@example.com')).toBeInTheDocument()
+        expect(within(dialog).getByText('Page 2 of 2 (2 total)')).toBeInTheDocument()
+    })
+
+    it('shows the failure reason for a failed send', async () => {
+        mockLoggedIn()
+        const sentCampaign = makeCampaign({ status: 'sent', sent_at: '2026-02-01T00:00:00+00:00' })
+        server.use(
+            http.get(`${API_URL}/api/campaigns`, () => HttpResponse.json(makePage([sentCampaign]))),
+            http.get(`${API_URL}/api/campaigns/1/sends`, () =>
+                HttpResponse.json(
+                    makePage([
+                        makeSend({
+                            status: 'failed',
+                            sent_at: null,
+                            error_message: 'Mailbox does not exist.',
+                        }),
+                    ]),
+                ),
+            ),
+        )
+
+        const user = userEvent.setup()
+        renderApp('/campaigns')
+
+        await screen.findByText('July Newsletter')
+        await user.click(screen.getByRole('button', { name: 'View' }))
+
+        const dialog = await screen.findByRole('dialog', { name: 'View campaign' })
+        expect(await within(dialog).findByText('Mailbox does not exist.')).toBeInTheDocument()
+    })
+
+    it('shows an empty state when a campaign has no sends yet', async () => {
+        mockLoggedIn()
+        const sentCampaign = makeCampaign({ status: 'sent', sent_at: '2026-02-01T00:00:00+00:00' })
+        server.use(
+            http.get(`${API_URL}/api/campaigns`, () => HttpResponse.json(makePage([sentCampaign]))),
+            http.get(`${API_URL}/api/campaigns/1/sends`, () => HttpResponse.json(makePage([]))),
+        )
+
+        const user = userEvent.setup()
+        renderApp('/campaigns')
+
+        await screen.findByText('July Newsletter')
+        await user.click(screen.getByRole('button', { name: 'View' }))
+
+        const dialog = await screen.findByRole('dialog', { name: 'View campaign' })
+        expect(await within(dialog).findByText('No sends yet.')).toBeInTheDocument()
     })
 })
