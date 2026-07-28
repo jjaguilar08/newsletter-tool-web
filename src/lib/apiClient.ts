@@ -22,7 +22,12 @@ type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 async function request<T>(path: string, method: Method, body?: unknown): Promise<T> {
     const headers: Record<string, string> = { Accept: 'application/json' }
 
-    if (body !== undefined) {
+    // FormData bodies (file uploads) must NOT get a Content-Type set here -
+    // the browser generates the multipart/form-data boundary itself only
+    // when it serializes the body, and a manually-set header without the
+    // boundary param breaks the backend's multipart parsing entirely.
+    const isFormData = body instanceof FormData
+    if (body !== undefined && !isFormData) {
         headers['Content-Type'] = 'application/json'
     }
 
@@ -39,7 +44,7 @@ async function request<T>(path: string, method: Method, body?: unknown): Promise
         method,
         credentials: 'include',
         headers,
-        body: body !== undefined ? JSON.stringify(body) : undefined,
+        body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
     })
 
     if (response.status === 204) {
@@ -73,6 +78,12 @@ async function primeCsrfCookie(): Promise<void> {
 export const apiClient = {
     get: <T>(path: string) => request<T>(path, 'GET'),
     post: <T>(path: string, body?: unknown) => request<T>(path, 'POST', body),
+    // Dedicated FormData entry point rather than overloading post()'s
+    // `body?: unknown` - a File passed as a plain JSON body would silently
+    // JSON.stringify to "{}"; keeping this a distinct method makes the
+    // multipart intent explicit at every call site instead of relying on
+    // callers to remember to wrap it in FormData themselves.
+    postForm: <T>(path: string, formData: FormData) => request<T>(path, 'POST', formData),
     put: <T>(path: string, body?: unknown) => request<T>(path, 'PUT', body),
     delete: <T = void>(path: string) => request<T>(path, 'DELETE'),
     primeCsrfCookie,

@@ -336,4 +336,191 @@ describe('SubscriberListPage', () => {
 
         expect(requestedPages).toEqual(['1', '2', '1'])
     })
+
+    it('returns to the previous page after deleting the last row on it', async () => {
+        mockLoggedIn()
+        let page2Subscribers = [makeSubscriber({ id: 2, email: 'page2@example.com' })]
+        server.use(
+            http.get(`${API_URL}/api/subscribers`, ({ request }) => {
+                const page = new URL(request.url).searchParams.get('page') ?? '1'
+                const lastPage = page2Subscribers.length > 0 ? 2 : 1
+                const total = 1 + page2Subscribers.length
+
+                if (page === '2') {
+                    return HttpResponse.json(
+                        makePage(page2Subscribers, { current_page: 2, last_page: lastPage, total }),
+                    )
+                }
+
+                return HttpResponse.json(
+                    makePage([makeSubscriber({ id: 1, email: 'page1@example.com' })], {
+                        current_page: 1,
+                        last_page: lastPage,
+                        total,
+                    }),
+                )
+            }),
+            http.delete(`${API_URL}/api/subscribers/2`, () => {
+                page2Subscribers = []
+                return new HttpResponse(null, { status: 204 })
+            }),
+        )
+
+        const user = userEvent.setup()
+        renderApp('/subscribers')
+
+        await screen.findByText('page1@example.com')
+        await user.click(screen.getByRole('button', { name: 'Next' }))
+        await screen.findByText('page2@example.com')
+
+        await user.click(screen.getByRole('button', { name: 'Delete' }))
+        const dialog = await screen.findByRole('dialog', { name: 'Delete subscriber' })
+        await user.click(within(dialog).getByRole('button', { name: 'Delete' }))
+
+        expect(await screen.findByText('page1@example.com')).toBeInTheDocument()
+        expect(screen.getByText('Page 1 of 1 (1 total)')).toBeInTheDocument()
+    })
+})
+
+describe('SubscriberListPage - CSV import', () => {
+    it('imports subscribers, shows the result counts, and refreshes the list', async () => {
+        mockLoggedIn()
+        let listCalls = 0
+        server.use(
+            http.get(`${API_URL}/api/subscribers`, () => {
+                listCalls += 1
+                return HttpResponse.json(
+                    listCalls > 1
+                        ? makePage([makeSubscriber({ id: 2, email: 'new@example.com' })])
+                        : makePage([]),
+                )
+            }),
+            http.post(`${API_URL}/api/subscribers/import`, ({ request }) => {
+                // Confirms apiClient.postForm() actually sent a multipart
+                // body (not a JSON.stringify'd File, the exact risk flagged
+                // for this task) without reading the body itself - jsdom's
+                // File/Blob aren't recognized by undici's real multipart
+                // parser/serializer (a cross-realm gap between jsdom and
+                // Node's fetch), so inspecting body content here is unreliable
+                // in this test environment regardless of what the app sends.
+                expect(request.headers.get('content-type')).toMatch(/^multipart\/form-data/)
+                return HttpResponse.json({ created: 1, updated: 0, skipped: 0, skipped_rows: [] })
+            }),
+        )
+
+        const user = userEvent.setup()
+        renderApp('/subscribers')
+
+        await screen.findByText('No subscribers yet. Add one to get started.')
+        await user.click(screen.getByRole('button', { name: 'Import CSV' }))
+
+        const dialog = await screen.findByRole('dialog', { name: 'Import subscribers' })
+        const file = new File(['email,name\nnew@example.com,New\n'], 'subscribers.csv', {
+            type: 'text/csv',
+        })
+        await user.upload(within(dialog).getByLabelText('CSV file'), file)
+        await user.click(within(dialog).getByRole('button', { name: 'Import' }))
+
+        expect(
+            await within(dialog).findByText('Created 1, updated 0, skipped 0.'),
+        ).toBeInTheDocument()
+        expect(await screen.findByText('new@example.com')).toBeInTheDocument()
+    })
+
+    it('shows skipped row reasons for a CSV with invalid rows', async () => {
+        mockLoggedIn()
+        server.use(
+            http.get(`${API_URL}/api/subscribers`, () => HttpResponse.json(makePage([]))),
+            http.post(`${API_URL}/api/subscribers/import`, () =>
+                HttpResponse.json({
+                    created: 1,
+                    updated: 0,
+                    skipped: 1,
+                    skipped_rows: [{ row: 3, reason: 'Invalid email format.' }],
+                }),
+            ),
+        )
+
+        const user = userEvent.setup()
+        renderApp('/subscribers')
+
+        await screen.findByText('No subscribers yet. Add one to get started.')
+        await user.click(screen.getByRole('button', { name: 'Import CSV' }))
+
+        const dialog = await screen.findByRole('dialog', { name: 'Import subscribers' })
+        const file = new File(['email\nok@example.com\nnot-an-email\n'], 'subscribers.csv', {
+            type: 'text/csv',
+        })
+        await user.upload(within(dialog).getByLabelText('CSV file'), file)
+        await user.click(within(dialog).getByRole('button', { name: 'Import' }))
+
+        expect(
+            await within(dialog).findByText('Created 1, updated 0, skipped 1.'),
+        ).toBeInTheDocument()
+        expect(within(dialog).getByText('3')).toBeInTheDocument()
+        expect(within(dialog).getByText('Invalid email format.')).toBeInTheDocument()
+    })
+
+    it('surfaces a validation error when the file is rejected as non-CSV', async () => {
+        mockLoggedIn()
+        server.use(
+            http.get(`${API_URL}/api/subscribers`, () => HttpResponse.json(makePage([]))),
+            http.post(`${API_URL}/api/subscribers/import`, () =>
+                HttpResponse.json(
+                    {
+                        message: 'The file field must be a file of type: csv, txt.',
+                        errors: { file: ['The file field must be a file of type: csv, txt.'] },
+                    },
+                    { status: 422 },
+                ),
+            ),
+        )
+
+        const user = userEvent.setup()
+        renderApp('/subscribers')
+
+        await screen.findByText('No subscribers yet. Add one to get started.')
+        await user.click(screen.getByRole('button', { name: 'Import CSV' }))
+
+        const dialog = await screen.findByRole('dialog', { name: 'Import subscribers' })
+        // Named .csv (matching the input's accept filter, so userEvent's
+        // simulated OS file picker actually lets it through) but with
+        // non-CSV content/MIME type - the backend's real mimes:csv,txt
+        // sniffing catches what the extension alone can't, and this is the
+        // case the frontend needs to surface, not a same-realm reject.
+        const file = new File(['not a csv'], 'subscribers.csv', { type: 'application/pdf' })
+        await user.upload(within(dialog).getByLabelText('CSV file'), file)
+        await user.click(within(dialog).getByRole('button', { name: 'Import' }))
+
+        expect(await within(dialog).findByRole('alert')).toHaveTextContent(
+            'The file field must be a file of type: csv, txt.',
+        )
+        expect(screen.getByRole('dialog', { name: 'Import subscribers' })).toBeInTheDocument()
+    })
+
+    it('surfaces a generic error when the import request fails', async () => {
+        mockLoggedIn()
+        server.use(
+            http.get(`${API_URL}/api/subscribers`, () => HttpResponse.json(makePage([]))),
+            http.post(`${API_URL}/api/subscribers/import`, () =>
+                HttpResponse.json({ message: 'Server error' }, { status: 500 }),
+            ),
+        )
+
+        const user = userEvent.setup()
+        renderApp('/subscribers')
+
+        await screen.findByText('No subscribers yet. Add one to get started.')
+        await user.click(screen.getByRole('button', { name: 'Import CSV' }))
+
+        const dialog = await screen.findByRole('dialog', { name: 'Import subscribers' })
+        const file = new File(['email\nok@example.com\n'], 'subscribers.csv', {
+            type: 'text/csv',
+        })
+        await user.upload(within(dialog).getByLabelText('CSV file'), file)
+        await user.click(within(dialog).getByRole('button', { name: 'Import' }))
+
+        expect(await within(dialog).findByRole('alert')).toHaveTextContent('Server error')
+        expect(screen.getByRole('dialog', { name: 'Import subscribers' })).toBeInTheDocument()
+    })
 })

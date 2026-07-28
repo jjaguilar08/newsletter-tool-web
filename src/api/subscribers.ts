@@ -1,6 +1,7 @@
 import { apiClient } from '../lib/apiClient'
 import type { Paginated } from '../types/pagination'
 import type {
+    ImportSubscribersResult,
     ListSubscribersParams,
     Subscriber,
     SubscriberInput,
@@ -39,4 +40,13 @@ export async function updateSubscriber(
 
 export function deleteSubscriber(id: number): Promise<void> {
     return apiClient.delete(`/api/subscribers/${id}`)
+}
+
+// Unlike store/update, the backend's import response is NOT wrapped in
+// { data: ... } - it's a plain { created, updated, skipped, skipped_rows }
+// object (see SubscriberController::import()), so no unwrapping here.
+export function importSubscribers(file: File): Promise<ImportSubscribersResult> {
+    const formData = new FormData()
+    formData.set('file', file)
+    return apiClient.postForm<ImportSubscribersResult>('/api/subscribers/import', formData)
 }

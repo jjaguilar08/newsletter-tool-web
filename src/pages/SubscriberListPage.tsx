@@ -3,6 +3,7 @@ import { deleteSubscriber, listSubscribers } from '../api/subscribers'
 import { ApiError } from '../lib/apiClient'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { SubscriberFormModal } from '../components/SubscriberFormModal'
+import { SubscriberImportModal } from '../components/SubscriberImportModal'
 import { useDebouncedValue } from '../hooks/useDebouncedValue'
 import type { PaginationMeta } from '../types/pagination'
 import type { Subscriber, SubscriberStatus } from '../types/subscriber'
@@ -34,6 +35,7 @@ export function SubscriberListPage() {
     const [loadErrorRetryable, setLoadErrorRetryable] = useState(true)
 
     const [formModal, setFormModal] = useState<FormModalState | null>(null)
+    const [isImportOpen, setIsImportOpen] = useState(false)
     const [deleteTarget, setDeleteTarget] = useState<Subscriber | null>(null)
     const [isDeleting, setIsDeleting] = useState(false)
     const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -96,6 +98,11 @@ export function SubscriberListPage() {
         setRefreshKey((key) => key + 1)
     }
 
+    function handleImported() {
+        setLoadState('loading')
+        setRefreshKey((key) => key + 1)
+    }
+
     async function handleConfirmDelete() {
         if (!deleteTarget) return
 
@@ -105,8 +112,17 @@ export function SubscriberListPage() {
         try {
             await deleteSubscriber(deleteTarget.id)
             setDeleteTarget(null)
-            setLoadState('loading')
-            setRefreshKey((key) => key + 1)
+
+            // If the row we just deleted was the only one on this page and
+            // we're not already on page 1, land back on the previous page
+            // instead of refetching the now-out-of-range current page and
+            // showing a false "no subscribers" empty state.
+            if (subscribers !== null && subscribers.length === 1 && page > 1) {
+                goToPage((current) => current - 1)
+            } else {
+                setLoadState('loading')
+                setRefreshKey((key) => key + 1)
+            }
         } catch (error) {
             setDeleteError(
                 error instanceof ApiError ? error.message : 'Failed to delete subscriber.',
@@ -151,6 +167,9 @@ export function SubscriberListPage() {
 
                 <button type="button" onClick={() => setFormModal({ mode: 'create' })}>
                     Add subscriber
+                </button>
+                <button type="button" onClick={() => setIsImportOpen(true)}>
+                    Import CSV
                 </button>
             </div>
 
@@ -247,6 +266,13 @@ export function SubscriberListPage() {
                     subscriber={formModal.mode === 'edit' ? formModal.subscriber : undefined}
                     onClose={() => setFormModal(null)}
                     onSaved={handleSaved}
+                />
+            )}
+
+            {isImportOpen && (
+                <SubscriberImportModal
+                    onClose={() => setIsImportOpen(false)}
+                    onImported={handleImported}
                 />
             )}
 

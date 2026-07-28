@@ -28,3 +28,18 @@ export interface ListSubscribersParams {
     search?: string
     status?: SubscriberStatus
 }
+
+// Matches SubscriberController::import()'s response shape exactly (see
+// PROJECT_NOTES.md Day 4/10) - row numbers count the header as row 1, so the
+// first data row is row 2, matching what a user sees in a spreadsheet.
+export interface SkippedImportRow {
+    row: number
+    reason: string
+}
+
+export interface ImportSubscribersResult {
+    created: number
+    updated: number
+    skipped: number
+    skipped_rows: SkippedImportRow[]
+}
