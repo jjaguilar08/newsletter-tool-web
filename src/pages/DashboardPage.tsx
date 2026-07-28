@@ -12,6 +12,7 @@ export function DashboardPage() {
             <p>Signed in as {user?.name}</p>
             <nav>
                 <Link to="/subscribers">Subscribers</Link>
+                <Link to="/campaigns">Campaigns</Link>
             </nav>
             <button type="button" onClick={() => void logout()}>
                 Log out
