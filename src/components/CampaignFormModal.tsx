@@ -1,6 +1,20 @@
 import { useState, type FormEvent } from 'react'
 import { createCampaign, updateCampaign } from '../api/campaigns'
 import { ApiError } from '../lib/apiClient'
+import {
+    alertError,
+    buttonPrimary,
+    buttonSecondary,
+    fieldError,
+    formStack,
+    input,
+    label,
+    modalActions,
+    modalOverlay,
+    modalPanel,
+    modalTitle,
+    textarea,
+} from '../styles/ui'
 import type { Campaign } from '../types/campaign'
 
 interface CampaignFormModalProps {
@@ -47,45 +61,73 @@ export function CampaignFormModal({ campaign, onClose, onSaved }: CampaignFormMo
     }
 
     return (
-        <div
-            role="dialog"
-            aria-modal="true"
-            aria-label={isEditing ? 'Edit campaign' : 'Add campaign'}
-        >
-            <h2>{isEditing ? 'Edit campaign' : 'Add campaign'}</h2>
-            <form onSubmit={handleSubmit} noValidate>
-                <div>
-                    <label htmlFor="campaign-subject">Subject</label>
-                    <input
-                        id="campaign-subject"
-                        type="text"
-                        value={subject}
-                        onChange={(event) => setSubject(event.target.value)}
-                        required
-                    />
-                    {fieldErrors.subject && <p role="alert">{fieldErrors.subject[0]}</p>}
-                </div>
+        <div className={modalOverlay}>
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-label={isEditing ? 'Edit campaign' : 'Add campaign'}
+                className={modalPanel}
+            >
+                <h2 className={modalTitle}>{isEditing ? 'Edit campaign' : 'Add campaign'}</h2>
+                <form onSubmit={handleSubmit} noValidate className={`mt-4 ${formStack}`}>
+                    <div>
+                        <label htmlFor="campaign-subject" className={label}>
+                            Subject
+                        </label>
+                        <input
+                            id="campaign-subject"
+                            type="text"
+                            value={subject}
+                            onChange={(event) => setSubject(event.target.value)}
+                            required
+                            className={input}
+                        />
+                        {fieldErrors.subject && (
+                            <p role="alert" className={fieldError}>
+                                {fieldErrors.subject[0]}
+                            </p>
+                        )}
+                    </div>
 
-                <div>
-                    <label htmlFor="campaign-content">Content</label>
-                    <textarea
-                        id="campaign-content"
-                        value={content}
-                        onChange={(event) => setContent(event.target.value)}
-                        required
-                    />
-                    {fieldErrors.content && <p role="alert">{fieldErrors.content[0]}</p>}
-                </div>
+                    <div>
+                        <label htmlFor="campaign-content" className={label}>
+                            Content
+                        </label>
+                        <textarea
+                            id="campaign-content"
+                            value={content}
+                            onChange={(event) => setContent(event.target.value)}
+                            required
+                            className={textarea}
+                        />
+                        {fieldErrors.content && (
+                            <p role="alert" className={fieldError}>
+                                {fieldErrors.content[0]}
+                            </p>
+                        )}
+                    </div>
 
-                {formError && <p role="alert">{formError}</p>}
+                    {formError && (
+                        <p role="alert" className={alertError}>
+                            {formError}
+                        </p>
+                    )}
 
-                <button type="button" onClick={onClose} disabled={isSubmitting}>
-                    Cancel
-                </button>
-                <button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? 'Saving…' : 'Save'}
-                </button>
-            </form>
+                    <div className={modalActions}>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            disabled={isSubmitting}
+                            className={buttonSecondary}
+                        >
+                            Cancel
+                        </button>
+                        <button type="submit" disabled={isSubmitting} className={buttonPrimary}>
+                            {isSubmitting ? 'Saving…' : 'Save'}
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     )
 }

@@ -1,6 +1,16 @@
 import { useEffect, useState } from 'react'
 import { previewCampaign } from '../api/campaigns'
 import { ApiError } from '../lib/apiClient'
+import { Spinner } from './Spinner'
+import {
+    alertError,
+    buttonSecondary,
+    loadingState,
+    modalActions,
+    modalOverlay,
+    modalPanelWide,
+    modalTitle,
+} from '../styles/ui'
 import type { Campaign, CampaignPreview } from '../types/campaign'
 
 interface CampaignPreviewModalProps {
@@ -36,26 +46,52 @@ export function CampaignPreviewModal({ campaign, onClose }: CampaignPreviewModal
     }, [campaign.id])
 
     return (
-        <div role="dialog" aria-modal="true" aria-label="Preview campaign">
-            <h2>Preview</h2>
+        <div className={modalOverlay}>
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-label="Preview campaign"
+                className={modalPanelWide}
+            >
+                <h2 className={modalTitle}>Preview</h2>
 
-            {loadState === 'loading' && <p>Loading preview…</p>}
-            {loadState === 'error' && <p role="alert">{loadError}</p>}
+                {loadState === 'loading' && (
+                    <div className={`mt-4 ${loadingState}`}>
+                        <Spinner />
+                        <span>Loading preview…</span>
+                    </div>
+                )}
+                {loadState === 'error' && (
+                    <p role="alert" className={`mt-4 ${alertError}`}>
+                        {loadError}
+                    </p>
+                )}
 
-            {loadState === 'ready' && preview && (
-                <>
-                    <p>Subject: {preview.subject}</p>
-                    {/* Campaign content is staff-authored but still arbitrary
-                        HTML - an empty sandbox (no allow-scripts, no
-                        allow-same-origin) is what actually neutralizes it,
-                        not dangerouslySetInnerHTML into the app's own DOM. */}
-                    <iframe title="Campaign preview" srcDoc={preview.html} sandbox="" />
-                </>
-            )}
+                {loadState === 'ready' && preview && (
+                    <>
+                        <p className="mt-4 text-sm text-slate-700">
+                            <span className="font-medium text-slate-900">Subject:</span>{' '}
+                            {preview.subject}
+                        </p>
+                        {/* Campaign content is staff-authored but still arbitrary
+                            HTML - an empty sandbox (no allow-scripts, no
+                            allow-same-origin) is what actually neutralizes it,
+                            not dangerouslySetInnerHTML into the app's own DOM. */}
+                        <iframe
+                            title="Campaign preview"
+                            srcDoc={preview.html}
+                            sandbox=""
+                            className="mt-3 h-96 w-full rounded-md border border-slate-200"
+                        />
+                    </>
+                )}
 
-            <button type="button" onClick={onClose}>
-                Close
-            </button>
+                <div className={modalActions}>
+                    <button type="button" onClick={onClose} className={buttonSecondary}>
+                        Close
+                    </button>
+                </div>
+            </div>
         </div>
     )
 }

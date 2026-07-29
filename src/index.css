@@ -1,14 +1,17 @@
-:root {
-    color-scheme: light dark;
-    font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+@import 'tailwindcss';
+
+@theme {
+    --font-sans: system-ui, 'Segoe UI', Roboto, sans-serif;
 }
 
-* {
-    box-sizing: border-box;
+:root {
+    /* Deliberately a fixed light theme (per the Day 16 styling pass), not
+       system-driven - "light dark" here would fight the palette we're
+       standardizing on rather than complementing it. */
+    color-scheme: light;
 }
 
 body {
-    margin: 0;
     min-height: 100svh;
 }
 

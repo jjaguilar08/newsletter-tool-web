@@ -1,9 +1,25 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { getDashboardStats } from '../api/dashboard'
-import { useAuth } from '../hooks/useAuth'
 import { ApiError } from '../lib/apiClient'
 import { CampaignStatusBadge } from '../components/CampaignStatusBadge'
+import { Spinner } from '../components/Spinner'
+import {
+    alertError,
+    buttonSecondary,
+    card,
+    emptyState,
+    loadingState,
+    pageContainer,
+    pageHeading,
+    subheading,
+    table,
+    tableBody,
+    tableHeadRow,
+    tableRow,
+    tableWrapper,
+    td,
+    th,
+} from '../styles/ui'
 import type { DashboardStats } from '../types/dashboardStats'
 
 function formatDate(value: string | null): string {
@@ -12,8 +28,6 @@ function formatDate(value: string | null): string {
 }
 
 export function DashboardPage() {
-    const { user, logout } = useAuth()
-
     const [stats, setStats] = useState<DashboardStats | null>(null)
     const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>('loading')
     const [loadError, setLoadError] = useState<string | null>(null)
@@ -49,102 +63,148 @@ export function DashboardPage() {
     }
 
     return (
-        <main>
-            <h1>Dashboard</h1>
-            <p>Signed in as {user?.name}</p>
-            <nav>
-                <Link to="/subscribers">Subscribers</Link>
-                <Link to="/campaigns">Campaigns</Link>
-            </nav>
-            <button type="button" onClick={() => void logout()}>
-                Log out
-            </button>
+        <div className={pageContainer}>
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+                <h1 className={pageHeading}>Dashboard</h1>
+                <button type="button" onClick={refreshStats} className={buttonSecondary}>
+                    Refresh
+                </button>
+            </div>
 
-            <button type="button" onClick={refreshStats}>
-                Refresh
-            </button>
-
-            {loadState === 'loading' && <p>Loading dashboard…</p>}
+            {loadState === 'loading' && (
+                <div className={loadingState}>
+                    <Spinner />
+                    <span>Loading dashboard…</span>
+                </div>
+            )}
 
             {loadState === 'error' && (
-                <div>
+                <div className={alertError}>
                     <p role="alert">{loadError}</p>
-                    <button type="button" onClick={refreshStats}>
+                    <button
+                        type="button"
+                        onClick={refreshStats}
+                        className={`${buttonSecondary} mt-3`}
+                    >
                         Retry
                     </button>
                 </div>
             )}
 
             {loadState === 'ready' && stats && (
-                <>
-                    <section>
-                        <h2>Subscribers</h2>
-                        <dl>
-                            <dt>Subscribed</dt>
-                            <dd>{stats.subscribers.subscribed}</dd>
-                            <dt>Unsubscribed</dt>
-                            <dd>{stats.subscribers.unsubscribed}</dd>
-                            <dt>Bounced</dt>
-                            <dd>{stats.subscribers.bounced}</dd>
-                        </dl>
-                    </section>
+                <div className="space-y-8">
+                    <div className="grid gap-6 sm:grid-cols-3">
+                        <section className={`${card} p-6`}>
+                            <h2 className={subheading}>Subscribers</h2>
+                            <dl className="mt-4 space-y-2 text-sm">
+                                <div className="flex items-center justify-between">
+                                    <dt className="text-slate-600">Subscribed</dt>
+                                    <dd className="font-semibold text-slate-900">
+                                        {stats.subscribers.subscribed}
+                                    </dd>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <dt className="text-slate-600">Unsubscribed</dt>
+                                    <dd className="font-semibold text-slate-900">
+                                        {stats.subscribers.unsubscribed}
+                                    </dd>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <dt className="text-slate-600">Bounced</dt>
+                                    <dd className="font-semibold text-slate-900">
+                                        {stats.subscribers.bounced}
+                                    </dd>
+                                </div>
+                            </dl>
+                        </section>
+
+                        <section className={`${card} p-6`}>
+                            <h2 className={subheading}>Campaigns</h2>
+                            <dl className="mt-4 space-y-2 text-sm">
+                                <div className="flex items-center justify-between">
+                                    <dt className="text-slate-600">Draft</dt>
+                                    <dd className="font-semibold text-slate-900">
+                                        {stats.campaigns.draft}
+                                    </dd>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <dt className="text-slate-600">Scheduled</dt>
+                                    <dd className="font-semibold text-slate-900">
+                                        {stats.campaigns.scheduled}
+                                    </dd>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <dt className="text-slate-600">Sending</dt>
+                                    <dd className="font-semibold text-slate-900">
+                                        {stats.campaigns.sending}
+                                    </dd>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <dt className="text-slate-600">Sent</dt>
+                                    <dd className="font-semibold text-slate-900">
+                                        {stats.campaigns.sent}
+                                    </dd>
+                                </div>
+                            </dl>
+                        </section>
+
+                        <section className={`${card} p-6`}>
+                            <h2 className={subheading}>Campaign sends</h2>
+                            <dl className="mt-4 space-y-2 text-sm">
+                                <div className="flex items-center justify-between">
+                                    <dt className="text-slate-600">Sent</dt>
+                                    <dd className="font-semibold text-slate-900">
+                                        {stats.campaign_sends.sent}
+                                    </dd>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <dt className="text-slate-600">Failed</dt>
+                                    <dd className="font-semibold text-slate-900">
+                                        {stats.campaign_sends.failed}
+                                    </dd>
+                                </div>
+                            </dl>
+                        </section>
+                    </div>
 
                     <section>
-                        <h2>Campaigns</h2>
-                        <dl>
-                            <dt>Draft</dt>
-                            <dd>{stats.campaigns.draft}</dd>
-                            <dt>Scheduled</dt>
-                            <dd>{stats.campaigns.scheduled}</dd>
-                            <dt>Sending</dt>
-                            <dd>{stats.campaigns.sending}</dd>
-                            <dt>Sent</dt>
-                            <dd>{stats.campaigns.sent}</dd>
-                        </dl>
-                    </section>
-
-                    <section>
-                        <h2>Campaign sends</h2>
-                        <dl>
-                            <dt>Sent</dt>
-                            <dd>{stats.campaign_sends.sent}</dd>
-                            <dt>Failed</dt>
-                            <dd>{stats.campaign_sends.failed}</dd>
-                        </dl>
-                    </section>
-
-                    <section>
-                        <h2>Recent campaigns</h2>
+                        <h2 className={`${subheading} mb-4`}>Recent campaigns</h2>
                         {stats.recent_campaigns.length === 0 ? (
-                            <p>No campaigns yet.</p>
+                            <div className={emptyState}>
+                                <p>No campaigns yet.</p>
+                            </div>
                         ) : (
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Subject</th>
-                                        <th>Status</th>
-                                        <th>Sent at</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {stats.recent_campaigns.map((campaign, index) => (
-                                        // No id in this response shape - index is
-                                        // stable since the list is only ever
-                                        // replaced wholesale on refresh.
-                                        <tr key={index}>
-                                            <td>{campaign.subject}</td>
-                                            <td>
-                                                <CampaignStatusBadge status={campaign.status} />
-                                            </td>
-                                            <td>{formatDate(campaign.sent_at)}</td>
+                            <div className={tableWrapper}>
+                                <table className={table}>
+                                    <thead className={tableHeadRow}>
+                                        <tr>
+                                            <th className={th}>Subject</th>
+                                            <th className={th}>Status</th>
+                                            <th className={th}>Sent at</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody className={tableBody}>
+                                        {stats.recent_campaigns.map((campaign, index) => (
+                                            // No id in this response shape - index is
+                                            // stable since the list is only ever
+                                            // replaced wholesale on refresh.
+                                            <tr key={index} className={tableRow}>
+                                                <td className={td}>{campaign.subject}</td>
+                                                <td className={td}>
+                                                    <CampaignStatusBadge status={campaign.status} />
+                                                </td>
+                                                <td className={td}>
+                                                    {formatDate(campaign.sent_at)}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         )}
                     </section>
-                </>
+                </div>
             )}
-        </main>
+        </div>
     )
 }

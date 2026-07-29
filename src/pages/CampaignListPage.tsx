@@ -7,6 +7,31 @@ import { CampaignScheduleModal } from '../components/CampaignScheduleModal'
 import { CampaignStatusBadge } from '../components/CampaignStatusBadge'
 import { CampaignViewModal } from '../components/CampaignViewModal'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { Spinner } from '../components/Spinner'
+import {
+    alertError,
+    buttonDestructiveSm,
+    buttonPrimary,
+    buttonPrimarySm,
+    buttonSecondary,
+    buttonSecondarySm,
+    card,
+    emptyState,
+    label,
+    loadingState,
+    paginationBar,
+    pageContainer,
+    pageHeading,
+    rowActions,
+    select,
+    table,
+    tableBody,
+    tableHeadRow,
+    tableRow,
+    tableWrapper,
+    td,
+    th,
+} from '../styles/ui'
 import type { PaginationMeta } from '../types/pagination'
 import type { Campaign, CampaignStatus } from '../types/campaign'
 
@@ -164,163 +189,209 @@ export function CampaignListPage() {
     const hasFilters = statusFilter !== ''
 
     return (
-        <main>
-            <h1>Campaigns</h1>
+        <>
+            <div className={pageContainer}>
+                <h1 className={`mb-6 ${pageHeading}`}>Campaigns</h1>
 
-            <div>
-                <label htmlFor="campaign-status-filter">Status</label>
-                <select
-                    id="campaign-status-filter"
-                    value={statusFilter}
-                    onChange={(event) =>
-                        handleStatusChange(event.target.value as CampaignStatus | '')
-                    }
-                >
-                    <option value="">All statuses</option>
-                    {STATUS_FILTER_OPTIONS.map((option) => (
-                        <option key={option} value={option}>
-                            {option}
-                        </option>
-                    ))}
-                </select>
+                <div className={`${card} mb-6 flex flex-wrap items-end gap-4 p-4`}>
+                    <div>
+                        <label htmlFor="campaign-status-filter" className={label}>
+                            Status
+                        </label>
+                        <select
+                            id="campaign-status-filter"
+                            value={statusFilter}
+                            onChange={(event) =>
+                                handleStatusChange(event.target.value as CampaignStatus | '')
+                            }
+                            className={select}
+                        >
+                            <option value="">All statuses</option>
+                            {STATUS_FILTER_OPTIONS.map((option) => (
+                                <option key={option} value={option}>
+                                    {option}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
 
-                <button type="button" onClick={() => setFormModal({ mode: 'create' })}>
-                    Add campaign
-                </button>
-            </div>
-
-            {loadState === 'loading' && <p>Loading campaigns…</p>}
-
-            {loadState === 'error' && (
-                <div>
-                    <p role="alert">{loadError}</p>
-                    {loadErrorRetryable && (
-                        <button type="button" onClick={retryLoad}>
-                            Retry
+                    <div className="ml-auto">
+                        <button
+                            type="button"
+                            onClick={() => setFormModal({ mode: 'create' })}
+                            className={buttonPrimary}
+                        >
+                            Add campaign
                         </button>
-                    )}
+                    </div>
                 </div>
-            )}
 
-            {loadState === 'ready' && campaigns !== null && campaigns.length === 0 && (
-                <p>
-                    {hasFilters
-                        ? 'No campaigns match your filter.'
-                        : 'No campaigns yet. Add one to get started.'}
-                </p>
-            )}
+                {loadState === 'loading' && (
+                    <div className={loadingState}>
+                        <Spinner />
+                        <span>Loading campaigns…</span>
+                    </div>
+                )}
 
-            {loadState === 'ready' && campaigns !== null && campaigns.length > 0 && (
-                <>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Subject</th>
-                                <th>Status</th>
-                                <th>Scheduled at</th>
-                                <th>Sent at</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {campaigns.map((campaign) => {
-                                const isEditable = EDITABLE_STATUSES.includes(campaign.status)
-                                const isPreviewable = PREVIEWABLE_STATUSES.includes(campaign.status)
-                                const isDraft = campaign.status === 'draft'
-                                return (
-                                    <tr key={campaign.id}>
-                                        <td>{campaign.subject}</td>
-                                        <td>
-                                            <CampaignStatusBadge status={campaign.status} />
-                                        </td>
-                                        <td>{formatDate(campaign.scheduled_at)}</td>
-                                        <td>{formatDate(campaign.sent_at)}</td>
-                                        <td>
-                                            {isPreviewable && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setPreviewTarget(campaign)}
-                                                >
-                                                    Preview
-                                                </button>
-                                            )}
-                                            {isEditable ? (
-                                                <>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            setFormModal({ mode: 'edit', campaign })
-                                                        }
-                                                    >
-                                                        Edit
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setDeleteError(null)
-                                                            setDeleteTarget(campaign)
-                                                        }}
-                                                    >
-                                                        Delete
-                                                    </button>
-                                                </>
-                                            ) : (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setViewTarget(campaign)}
-                                                >
-                                                    View
-                                                </button>
-                                            )}
-                                            {isDraft && (
-                                                <>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setScheduleTarget(campaign)}
-                                                    >
-                                                        Schedule
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setSendError(null)
-                                                            setSendTarget(campaign)
-                                                        }}
-                                                    >
-                                                        Send Now
-                                                    </button>
-                                                </>
-                                            )}
-                                        </td>
-                                    </tr>
-                                )
-                            })}
-                        </tbody>
-                    </table>
-
-                    {meta && (
-                        <div>
+                {loadState === 'error' && (
+                    <div className={alertError}>
+                        <p role="alert">{loadError}</p>
+                        {loadErrorRetryable && (
                             <button
                                 type="button"
-                                onClick={() => goToPage((current) => current - 1)}
-                                disabled={meta.current_page <= 1}
+                                onClick={retryLoad}
+                                className={`${buttonSecondary} mt-3`}
                             >
-                                Previous
+                                Retry
                             </button>
-                            <span>
-                                Page {meta.current_page} of {meta.last_page} ({meta.total} total)
-                            </span>
-                            <button
-                                type="button"
-                                onClick={() => goToPage((current) => current + 1)}
-                                disabled={meta.current_page >= meta.last_page}
-                            >
-                                Next
-                            </button>
-                        </div>
-                    )}
-                </>
-            )}
+                        )}
+                    </div>
+                )}
+
+                {loadState === 'ready' && campaigns !== null && campaigns.length === 0 && (
+                    <div className={emptyState}>
+                        <p>
+                            {hasFilters
+                                ? 'No campaigns match your filter.'
+                                : 'No campaigns yet. Add one to get started.'}
+                        </p>
+                    </div>
+                )}
+
+                {loadState === 'ready' && campaigns !== null && campaigns.length > 0 && (
+                    <div className={tableWrapper}>
+                        <table className={table}>
+                            <thead className={tableHeadRow}>
+                                <tr>
+                                    <th className={th}>Subject</th>
+                                    <th className={th}>Status</th>
+                                    <th className={th}>Scheduled at</th>
+                                    <th className={th}>Sent at</th>
+                                    <th className={th}>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className={tableBody}>
+                                {campaigns.map((campaign) => {
+                                    const isEditable = EDITABLE_STATUSES.includes(campaign.status)
+                                    const isPreviewable = PREVIEWABLE_STATUSES.includes(
+                                        campaign.status,
+                                    )
+                                    const isDraft = campaign.status === 'draft'
+                                    return (
+                                        <tr key={campaign.id} className={tableRow}>
+                                            <td className={td}>{campaign.subject}</td>
+                                            <td className={td}>
+                                                <CampaignStatusBadge status={campaign.status} />
+                                            </td>
+                                            <td className={td}>
+                                                {formatDate(campaign.scheduled_at)}
+                                            </td>
+                                            <td className={td}>{formatDate(campaign.sent_at)}</td>
+                                            <td className={td}>
+                                                <div className={rowActions}>
+                                                    {isPreviewable && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                setPreviewTarget(campaign)
+                                                            }
+                                                            className={buttonSecondarySm}
+                                                        >
+                                                            Preview
+                                                        </button>
+                                                    )}
+                                                    {isEditable ? (
+                                                        <>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    setFormModal({
+                                                                        mode: 'edit',
+                                                                        campaign,
+                                                                    })
+                                                                }
+                                                                className={buttonSecondarySm}
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setDeleteError(null)
+                                                                    setDeleteTarget(campaign)
+                                                                }}
+                                                                className={buttonDestructiveSm}
+                                                            >
+                                                                Delete
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setViewTarget(campaign)}
+                                                            className={buttonSecondarySm}
+                                                        >
+                                                            View
+                                                        </button>
+                                                    )}
+                                                    {isDraft && (
+                                                        <>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    setScheduleTarget(campaign)
+                                                                }
+                                                                className={buttonSecondarySm}
+                                                            >
+                                                                Schedule
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setSendError(null)
+                                                                    setSendTarget(campaign)
+                                                                }}
+                                                                className={buttonPrimarySm}
+                                                            >
+                                                                Send Now
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )
+                                })}
+                            </tbody>
+                        </table>
+
+                        {meta && (
+                            <div className={paginationBar}>
+                                <button
+                                    type="button"
+                                    onClick={() => goToPage((current) => current - 1)}
+                                    disabled={meta.current_page <= 1}
+                                    className={buttonSecondarySm}
+                                >
+                                    Previous
+                                </button>
+                                <span>
+                                    Page {meta.current_page} of {meta.last_page} ({meta.total}{' '}
+                                    total)
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => goToPage((current) => current + 1)}
+                                    disabled={meta.current_page >= meta.last_page}
+                                    className={buttonSecondarySm}
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
 
             {formModal && (
                 <CampaignFormModal
@@ -372,6 +443,6 @@ export function CampaignListPage() {
                     onCancel={() => setDeleteTarget(null)}
                 />
             )}
-        </main>
+        </>
     )
 }

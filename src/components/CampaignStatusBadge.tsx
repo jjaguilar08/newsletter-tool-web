@@ -1,10 +1,10 @@
 import type { CampaignStatus } from '../types/campaign'
 
-const STATUS_STYLES: Record<CampaignStatus, { background: string; color: string }> = {
-    draft: { background: '#e2e8f0', color: '#1e293b' },
-    scheduled: { background: '#fef3c7', color: '#92400e' },
-    sending: { background: '#dbeafe', color: '#1e40af' },
-    sent: { background: '#dcfce7', color: '#166534' },
+const STATUS_CLASSES: Record<CampaignStatus, string> = {
+    draft: 'bg-slate-200 text-slate-800',
+    scheduled: 'bg-amber-100 text-amber-800',
+    sending: 'bg-blue-100 text-blue-800',
+    sent: 'bg-green-100 text-green-800',
 }
 
 const STATUS_LABELS: Record<CampaignStatus, string> = {
@@ -21,14 +21,7 @@ interface CampaignStatusBadgeProps {
 export function CampaignStatusBadge({ status }: CampaignStatusBadgeProps) {
     return (
         <span
-            style={{
-                ...STATUS_STYLES[status],
-                display: 'inline-block',
-                padding: '0.15em 0.6em',
-                borderRadius: '999px',
-                fontSize: '0.85em',
-                fontWeight: 600,
-            }}
+            className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_CLASSES[status]}`}
         >
             {STATUS_LABELS[status]}
         </span>

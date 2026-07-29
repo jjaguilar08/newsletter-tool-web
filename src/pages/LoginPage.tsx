@@ -2,6 +2,7 @@ import { useRef, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { ApiError } from '../lib/apiClient'
+import { alertError, buttonPrimary, card, formStack, input, label } from '../styles/ui'
 
 export function LoginPage() {
     const { login } = useAuth()
@@ -42,41 +43,59 @@ export function LoginPage() {
     }
 
     return (
-        <main>
-            <h1>Log in</h1>
-            <form onSubmit={handleSubmit} noValidate>
-                <div>
-                    <label htmlFor="email">Email</label>
-                    <input
-                        id="email"
-                        name="email"
-                        type="email"
-                        autoComplete="username"
-                        value={email}
-                        onChange={(event) => setEmail(event.target.value)}
-                        required
-                    />
-                </div>
+        <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+            <div className={`w-full max-w-sm ${card} p-8`}>
+                <h1 className="mb-6 text-center text-2xl font-semibold tracking-tight text-slate-900">
+                    Log in
+                </h1>
+                <form onSubmit={handleSubmit} noValidate className={formStack}>
+                    <div>
+                        <label htmlFor="email" className={label}>
+                            Email
+                        </label>
+                        <input
+                            id="email"
+                            name="email"
+                            type="email"
+                            autoComplete="username"
+                            value={email}
+                            onChange={(event) => setEmail(event.target.value)}
+                            required
+                            className={input}
+                        />
+                    </div>
 
-                <div>
-                    <label htmlFor="password">Password</label>
-                    <input
-                        id="password"
-                        name="password"
-                        type="password"
-                        autoComplete="current-password"
-                        value={password}
-                        onChange={(event) => setPassword(event.target.value)}
-                        required
-                    />
-                </div>
+                    <div>
+                        <label htmlFor="password" className={label}>
+                            Password
+                        </label>
+                        <input
+                            id="password"
+                            name="password"
+                            type="password"
+                            autoComplete="current-password"
+                            value={password}
+                            onChange={(event) => setPassword(event.target.value)}
+                            required
+                            className={input}
+                        />
+                    </div>
 
-                {error && <p role="alert">{error}</p>}
+                    {error && (
+                        <p role="alert" className={alertError}>
+                            {error}
+                        </p>
+                    )}
 
-                <button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? 'Logging in…' : 'Log in'}
-                </button>
-            </form>
+                    <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className={`${buttonPrimary} w-full`}
+                    >
+                        {isSubmitting ? 'Logging in…' : 'Log in'}
+                    </button>
+                </form>
+            </div>
         </main>
     )
 }

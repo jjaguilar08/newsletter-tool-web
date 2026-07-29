@@ -2,6 +2,18 @@ import { useState, type FormEvent } from 'react'
 import { scheduleCampaign } from '../api/campaigns'
 import { ApiError } from '../lib/apiClient'
 import { ConfirmDialog } from './ConfirmDialog'
+import {
+    buttonPrimary,
+    buttonSecondary,
+    fieldError,
+    formStack,
+    input,
+    label,
+    modalActions,
+    modalOverlay,
+    modalPanel,
+    modalTitle,
+} from '../styles/ui'
 import type { Campaign } from '../types/campaign'
 
 interface CampaignScheduleModalProps {
@@ -69,6 +81,7 @@ export function CampaignScheduleModal({
                 title="Schedule campaign"
                 message={`Schedule "${campaign.subject}" to send at ${new Date(scheduledAt).toLocaleString()}?`}
                 confirmLabel="Schedule"
+                tone="primary"
                 isConfirming={isSubmitting}
                 error={formError}
                 onConfirm={() => void handleConfirmSchedule()}
@@ -78,27 +91,49 @@ export function CampaignScheduleModal({
     }
 
     return (
-        <div role="dialog" aria-modal="true" aria-label="Schedule campaign">
-            <h2>Schedule campaign</h2>
-            <form onSubmit={handleContinue} noValidate>
-                <div>
-                    <label htmlFor="campaign-scheduled-at">Send at</label>
-                    <input
-                        id="campaign-scheduled-at"
-                        type="datetime-local"
-                        value={scheduledAt}
-                        onChange={(event) => setScheduledAt(event.target.value)}
-                        required
-                    />
-                    {clientError && <p role="alert">{clientError}</p>}
-                    {fieldErrors.scheduled_at && <p role="alert">{fieldErrors.scheduled_at[0]}</p>}
-                </div>
+        <div className={modalOverlay}>
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-label="Schedule campaign"
+                className={modalPanel}
+            >
+                <h2 className={modalTitle}>Schedule campaign</h2>
+                <form onSubmit={handleContinue} noValidate className={`mt-4 ${formStack}`}>
+                    <div>
+                        <label htmlFor="campaign-scheduled-at" className={label}>
+                            Send at
+                        </label>
+                        <input
+                            id="campaign-scheduled-at"
+                            type="datetime-local"
+                            value={scheduledAt}
+                            onChange={(event) => setScheduledAt(event.target.value)}
+                            required
+                            className={input}
+                        />
+                        {clientError && (
+                            <p role="alert" className={fieldError}>
+                                {clientError}
+                            </p>
+                        )}
+                        {fieldErrors.scheduled_at && (
+                            <p role="alert" className={fieldError}>
+                                {fieldErrors.scheduled_at[0]}
+                            </p>
+                        )}
+                    </div>
 
-                <button type="button" onClick={onClose}>
-                    Cancel
-                </button>
-                <button type="submit">Continue</button>
-            </form>
+                    <div className={modalActions}>
+                        <button type="button" onClick={onClose} className={buttonSecondary}>
+                            Cancel
+                        </button>
+                        <button type="submit" className={buttonPrimary}>
+                            Continue
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     )
 }

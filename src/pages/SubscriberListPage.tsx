@@ -4,7 +4,32 @@ import { ApiError } from '../lib/apiClient'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { SubscriberFormModal } from '../components/SubscriberFormModal'
 import { SubscriberImportModal } from '../components/SubscriberImportModal'
+import { Spinner } from '../components/Spinner'
 import { useDebouncedValue } from '../hooks/useDebouncedValue'
+import {
+    alertError,
+    buttonDestructiveSm,
+    buttonPrimary,
+    buttonSecondary,
+    buttonSecondarySm,
+    card,
+    emptyState,
+    input,
+    label,
+    loadingState,
+    paginationBar,
+    pageContainer,
+    pageHeading,
+    rowActions,
+    select,
+    table,
+    tableBody,
+    tableHeadRow,
+    tableRow,
+    tableWrapper,
+    td,
+    th,
+} from '../styles/ui'
 import type { PaginationMeta } from '../types/pagination'
 import type { Subscriber, SubscriberStatus } from '../types/subscriber'
 
@@ -135,131 +160,173 @@ export function SubscriberListPage() {
     const hasFilters = debouncedSearch !== '' || statusFilter !== ''
 
     return (
-        <main>
-            <h1>Subscribers</h1>
+        <>
+            <div className={pageContainer}>
+                <h1 className={`mb-6 ${pageHeading}`}>Subscribers</h1>
 
-            <div>
-                <label htmlFor="subscriber-search">Search</label>
-                <input
-                    id="subscriber-search"
-                    type="search"
-                    value={searchInput}
-                    onChange={(event) => handleSearchChange(event.target.value)}
-                    placeholder="Search by email or name"
-                    maxLength={255}
-                />
+                <div className={`${card} mb-6 flex flex-wrap items-end gap-4 p-4`}>
+                    <div>
+                        <label htmlFor="subscriber-search" className={label}>
+                            Search
+                        </label>
+                        <input
+                            id="subscriber-search"
+                            type="search"
+                            value={searchInput}
+                            onChange={(event) => handleSearchChange(event.target.value)}
+                            placeholder="Search by email or name"
+                            maxLength={255}
+                            className={`${input} w-64`}
+                        />
+                    </div>
 
-                <label htmlFor="subscriber-status-filter">Status</label>
-                <select
-                    id="subscriber-status-filter"
-                    value={statusFilter}
-                    onChange={(event) =>
-                        handleStatusChange(event.target.value as SubscriberStatus | '')
-                    }
-                >
-                    <option value="">All statuses</option>
-                    {STATUS_FILTER_OPTIONS.map((option) => (
-                        <option key={option} value={option}>
-                            {option}
-                        </option>
-                    ))}
-                </select>
-
-                <button type="button" onClick={() => setFormModal({ mode: 'create' })}>
-                    Add subscriber
-                </button>
-                <button type="button" onClick={() => setIsImportOpen(true)}>
-                    Import CSV
-                </button>
-            </div>
-
-            {loadState === 'loading' && <p>Loading subscribers…</p>}
-
-            {loadState === 'error' && (
-                <div>
-                    <p role="alert">{loadError}</p>
-                    {loadErrorRetryable && (
-                        <button type="button" onClick={retryLoad}>
-                            Retry
-                        </button>
-                    )}
-                </div>
-            )}
-
-            {loadState === 'ready' && subscribers !== null && subscribers.length === 0 && (
-                <p>
-                    {hasFilters
-                        ? 'No subscribers match your search.'
-                        : 'No subscribers yet. Add one to get started.'}
-                </p>
-            )}
-
-            {loadState === 'ready' && subscribers !== null && subscribers.length > 0 && (
-                <>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Email</th>
-                                <th>Name</th>
-                                <th>Status</th>
-                                <th>Subscribed at</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {subscribers.map((subscriber) => (
-                                <tr key={subscriber.id}>
-                                    <td>{subscriber.email}</td>
-                                    <td>{subscriber.name ?? '—'}</td>
-                                    <td>{subscriber.status}</td>
-                                    <td>{formatDate(subscriber.subscribed_at)}</td>
-                                    <td>
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                setFormModal({ mode: 'edit', subscriber })
-                                            }
-                                        >
-                                            Edit
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setDeleteError(null)
-                                                setDeleteTarget(subscriber)
-                                            }}
-                                        >
-                                            Delete
-                                        </button>
-                                    </td>
-                                </tr>
+                    <div>
+                        <label htmlFor="subscriber-status-filter" className={label}>
+                            Status
+                        </label>
+                        <select
+                            id="subscriber-status-filter"
+                            value={statusFilter}
+                            onChange={(event) =>
+                                handleStatusChange(event.target.value as SubscriberStatus | '')
+                            }
+                            className={select}
+                        >
+                            <option value="">All statuses</option>
+                            {STATUS_FILTER_OPTIONS.map((option) => (
+                                <option key={option} value={option}>
+                                    {option}
+                                </option>
                             ))}
-                        </tbody>
-                    </table>
+                        </select>
+                    </div>
 
-                    {meta && (
-                        <div>
+                    <div className="ml-auto flex flex-wrap gap-3">
+                        <button
+                            type="button"
+                            onClick={() => setFormModal({ mode: 'create' })}
+                            className={buttonPrimary}
+                        >
+                            Add subscriber
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setIsImportOpen(true)}
+                            className={buttonSecondary}
+                        >
+                            Import CSV
+                        </button>
+                    </div>
+                </div>
+
+                {loadState === 'loading' && (
+                    <div className={loadingState}>
+                        <Spinner />
+                        <span>Loading subscribers…</span>
+                    </div>
+                )}
+
+                {loadState === 'error' && (
+                    <div className={alertError}>
+                        <p role="alert">{loadError}</p>
+                        {loadErrorRetryable && (
                             <button
                                 type="button"
-                                onClick={() => goToPage((current) => current - 1)}
-                                disabled={meta.current_page <= 1}
+                                onClick={retryLoad}
+                                className={`${buttonSecondary} mt-3`}
                             >
-                                Previous
+                                Retry
                             </button>
-                            <span>
-                                Page {meta.current_page} of {meta.last_page} ({meta.total} total)
-                            </span>
-                            <button
-                                type="button"
-                                onClick={() => goToPage((current) => current + 1)}
-                                disabled={meta.current_page >= meta.last_page}
-                            >
-                                Next
-                            </button>
-                        </div>
-                    )}
-                </>
-            )}
+                        )}
+                    </div>
+                )}
+
+                {loadState === 'ready' && subscribers !== null && subscribers.length === 0 && (
+                    <div className={emptyState}>
+                        <p>
+                            {hasFilters
+                                ? 'No subscribers match your search.'
+                                : 'No subscribers yet. Add one to get started.'}
+                        </p>
+                    </div>
+                )}
+
+                {loadState === 'ready' && subscribers !== null && subscribers.length > 0 && (
+                    <div className={tableWrapper}>
+                        <table className={table}>
+                            <thead className={tableHeadRow}>
+                                <tr>
+                                    <th className={th}>Email</th>
+                                    <th className={th}>Name</th>
+                                    <th className={th}>Status</th>
+                                    <th className={th}>Subscribed at</th>
+                                    <th className={th}>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className={tableBody}>
+                                {subscribers.map((subscriber) => (
+                                    <tr key={subscriber.id} className={tableRow}>
+                                        <td className={td}>{subscriber.email}</td>
+                                        <td className={td}>{subscriber.name ?? '—'}</td>
+                                        <td className={td}>{subscriber.status}</td>
+                                        <td className={td}>
+                                            {formatDate(subscriber.subscribed_at)}
+                                        </td>
+                                        <td className={td}>
+                                            <div className={rowActions}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setFormModal({ mode: 'edit', subscriber })
+                                                    }
+                                                    className={buttonSecondarySm}
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setDeleteError(null)
+                                                        setDeleteTarget(subscriber)
+                                                    }}
+                                                    className={buttonDestructiveSm}
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+
+                        {meta && (
+                            <div className={paginationBar}>
+                                <button
+                                    type="button"
+                                    onClick={() => goToPage((current) => current - 1)}
+                                    disabled={meta.current_page <= 1}
+                                    className={buttonSecondarySm}
+                                >
+                                    Previous
+                                </button>
+                                <span>
+                                    Page {meta.current_page} of {meta.last_page} ({meta.total}{' '}
+                                    total)
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => goToPage((current) => current + 1)}
+                                    disabled={meta.current_page >= meta.last_page}
+                                    className={buttonSecondarySm}
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
 
             {formModal && (
                 <SubscriberFormModal
@@ -287,6 +354,6 @@ export function SubscriberListPage() {
                     onCancel={() => setDeleteTarget(null)}
                 />
             )}
-        </main>
+        </>
     )
 }

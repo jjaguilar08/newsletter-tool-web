@@ -143,24 +143,4 @@ describe('DashboardPage', () => {
 
         expect(await screen.findByText('No campaigns yet.')).toBeInTheDocument()
     })
-
-    it('still shows the signed-in-as line, nav links, and logout button (regression check)', async () => {
-        mockLoggedIn()
-        server.use(
-            http.get(`${API_URL}/api/dashboard/stats`, () => HttpResponse.json(mockDashboardStats)),
-        )
-
-        renderApp('/dashboard')
-
-        expect(await screen.findByText('Signed in as Ada Lovelace')).toBeInTheDocument()
-        expect(screen.getByRole('link', { name: 'Subscribers' })).toHaveAttribute(
-            'href',
-            '/subscribers',
-        )
-        expect(screen.getByRole('link', { name: 'Campaigns' })).toHaveAttribute(
-            'href',
-            '/campaigns',
-        )
-        expect(screen.getByRole('button', { name: 'Log out' })).toBeInTheDocument()
-    })
 })

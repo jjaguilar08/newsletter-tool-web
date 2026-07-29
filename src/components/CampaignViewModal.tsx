@@ -1,6 +1,27 @@
 import { useEffect, useState } from 'react'
 import { listCampaignSends } from '../api/campaignSends'
 import { ApiError } from '../lib/apiClient'
+import { Spinner } from './Spinner'
+import {
+    alertError,
+    buttonSecondary,
+    buttonSecondarySm,
+    emptyState,
+    loadingState,
+    modalActions,
+    modalOverlay,
+    modalPanelWide,
+    modalTitle,
+    paginationBar,
+    subheading,
+    table,
+    tableBody,
+    tableHeadRow,
+    tableRow,
+    tableWrapper,
+    td,
+    th,
+} from '../styles/ui'
 import type { Campaign } from '../types/campaign'
 import type { CampaignSend } from '../types/campaignSend'
 import type { PaginationMeta } from '../types/pagination'
@@ -63,75 +84,102 @@ export function CampaignViewModal({ campaign, onClose }: CampaignViewModalProps)
     }
 
     return (
-        <div role="dialog" aria-modal="true" aria-label="View campaign">
-            <h2>{campaign.subject}</h2>
-            <p>{campaign.content}</p>
+        <div className={modalOverlay}>
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-label="View campaign"
+                className={modalPanelWide}
+            >
+                <h2 className={modalTitle}>{campaign.subject}</h2>
+                <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">
+                    {campaign.content}
+                </p>
 
-            <h3>Send log</h3>
+                <h3 className={`mt-6 mb-4 ${subheading}`}>Send log</h3>
 
-            {loadState === 'loading' && <p>Loading send log…</p>}
+                {loadState === 'loading' && (
+                    <div className={loadingState}>
+                        <Spinner />
+                        <span>Loading send log…</span>
+                    </div>
+                )}
 
-            {loadState === 'error' && (
-                <div>
-                    <p role="alert">{loadError}</p>
-                    <button type="button" onClick={retryLoad}>
-                        Retry
+                {loadState === 'error' && (
+                    <div className={alertError}>
+                        <p role="alert">{loadError}</p>
+                        <button
+                            type="button"
+                            onClick={retryLoad}
+                            className={`${buttonSecondary} mt-3`}
+                        >
+                            Retry
+                        </button>
+                    </div>
+                )}
+
+                {loadState === 'ready' && sends !== null && sends.length === 0 && (
+                    <div className={emptyState}>
+                        <p>No sends yet.</p>
+                    </div>
+                )}
+
+                {loadState === 'ready' && sends !== null && sends.length > 0 && (
+                    <div className={tableWrapper}>
+                        <table className={table}>
+                            <thead className={tableHeadRow}>
+                                <tr>
+                                    <th className={th}>Email</th>
+                                    <th className={th}>Status</th>
+                                    <th className={th}>Sent at</th>
+                                    <th className={th}>Error</th>
+                                </tr>
+                            </thead>
+                            <tbody className={tableBody}>
+                                {sends.map((send) => (
+                                    <tr key={send.id} className={tableRow}>
+                                        <td className={td}>{send.subscriber_email}</td>
+                                        <td className={td}>{send.status}</td>
+                                        <td className={td}>{formatDate(send.sent_at)}</td>
+                                        <td className={td}>{send.error_message ?? '—'}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+
+                        {meta && (
+                            <div className={paginationBar}>
+                                <button
+                                    type="button"
+                                    onClick={() => goToPage((current) => current - 1)}
+                                    disabled={meta.current_page <= 1}
+                                    className={buttonSecondarySm}
+                                >
+                                    Previous
+                                </button>
+                                <span>
+                                    Page {meta.current_page} of {meta.last_page} ({meta.total}{' '}
+                                    total)
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => goToPage((current) => current + 1)}
+                                    disabled={meta.current_page >= meta.last_page}
+                                    className={buttonSecondarySm}
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                <div className={modalActions}>
+                    <button type="button" onClick={onClose} className={buttonSecondary}>
+                        Close
                     </button>
                 </div>
-            )}
-
-            {loadState === 'ready' && sends !== null && sends.length === 0 && <p>No sends yet.</p>}
-
-            {loadState === 'ready' && sends !== null && sends.length > 0 && (
-                <>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Email</th>
-                                <th>Status</th>
-                                <th>Sent at</th>
-                                <th>Error</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {sends.map((send) => (
-                                <tr key={send.id}>
-                                    <td>{send.subscriber_email}</td>
-                                    <td>{send.status}</td>
-                                    <td>{formatDate(send.sent_at)}</td>
-                                    <td>{send.error_message ?? '—'}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-
-                    {meta && (
-                        <div>
-                            <button
-                                type="button"
-                                onClick={() => goToPage((current) => current - 1)}
-                                disabled={meta.current_page <= 1}
-                            >
-                                Previous
-                            </button>
-                            <span>
-                                Page {meta.current_page} of {meta.last_page} ({meta.total} total)
-                            </span>
-                            <button
-                                type="button"
-                                onClick={() => goToPage((current) => current + 1)}
-                                disabled={meta.current_page >= meta.last_page}
-                            >
-                                Next
-                            </button>
-                        </div>
-                    )}
-                </>
-            )}
-
-            <button type="button" onClick={onClose}>
-                Close
-            </button>
+            </div>
         </div>
     )
 }

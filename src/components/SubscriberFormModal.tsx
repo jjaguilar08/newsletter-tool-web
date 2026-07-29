@@ -1,6 +1,20 @@
 import { useState, type FormEvent } from 'react'
 import { createSubscriber, updateSubscriber } from '../api/subscribers'
 import { ApiError } from '../lib/apiClient'
+import {
+    alertError,
+    buttonPrimary,
+    buttonSecondary,
+    fieldError,
+    formStack,
+    input,
+    label,
+    modalActions,
+    modalOverlay,
+    modalPanel,
+    modalTitle,
+    select,
+} from '../styles/ui'
 import type { Subscriber, SubscriberStatus } from '../types/subscriber'
 
 const STATUS_OPTIONS: SubscriberStatus[] = ['subscribed', 'unsubscribed', 'bounced']
@@ -47,57 +61,96 @@ export function SubscriberFormModal({ subscriber, onClose, onSaved }: Subscriber
     }
 
     return (
-        <div role="dialog" aria-modal="true" aria-label={isEditing ? 'Edit subscriber' : 'Add subscriber'}>
-            <h2>{isEditing ? 'Edit subscriber' : 'Add subscriber'}</h2>
-            <form onSubmit={handleSubmit} noValidate>
-                <div>
-                    <label htmlFor="subscriber-email">Email</label>
-                    <input
-                        id="subscriber-email"
-                        type="email"
-                        value={email}
-                        onChange={(event) => setEmail(event.target.value)}
-                        required
-                    />
-                    {fieldErrors.email && <p role="alert">{fieldErrors.email[0]}</p>}
-                </div>
+        <div className={modalOverlay}>
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-label={isEditing ? 'Edit subscriber' : 'Add subscriber'}
+                className={modalPanel}
+            >
+                <h2 className={modalTitle}>{isEditing ? 'Edit subscriber' : 'Add subscriber'}</h2>
+                <form onSubmit={handleSubmit} noValidate className={`mt-4 ${formStack}`}>
+                    <div>
+                        <label htmlFor="subscriber-email" className={label}>
+                            Email
+                        </label>
+                        <input
+                            id="subscriber-email"
+                            type="email"
+                            value={email}
+                            onChange={(event) => setEmail(event.target.value)}
+                            required
+                            className={input}
+                        />
+                        {fieldErrors.email && (
+                            <p role="alert" className={fieldError}>
+                                {fieldErrors.email[0]}
+                            </p>
+                        )}
+                    </div>
 
-                <div>
-                    <label htmlFor="subscriber-name">Name</label>
-                    <input
-                        id="subscriber-name"
-                        type="text"
-                        value={name}
-                        onChange={(event) => setName(event.target.value)}
-                    />
-                    {fieldErrors.name && <p role="alert">{fieldErrors.name[0]}</p>}
-                </div>
+                    <div>
+                        <label htmlFor="subscriber-name" className={label}>
+                            Name
+                        </label>
+                        <input
+                            id="subscriber-name"
+                            type="text"
+                            value={name}
+                            onChange={(event) => setName(event.target.value)}
+                            className={input}
+                        />
+                        {fieldErrors.name && (
+                            <p role="alert" className={fieldError}>
+                                {fieldErrors.name[0]}
+                            </p>
+                        )}
+                    </div>
 
-                <div>
-                    <label htmlFor="subscriber-status">Status</label>
-                    <select
-                        id="subscriber-status"
-                        value={status}
-                        onChange={(event) => setStatus(event.target.value as SubscriberStatus)}
-                    >
-                        {STATUS_OPTIONS.map((option) => (
-                            <option key={option} value={option}>
-                                {option}
-                            </option>
-                        ))}
-                    </select>
-                    {fieldErrors.status && <p role="alert">{fieldErrors.status[0]}</p>}
-                </div>
+                    <div>
+                        <label htmlFor="subscriber-status" className={label}>
+                            Status
+                        </label>
+                        <select
+                            id="subscriber-status"
+                            value={status}
+                            onChange={(event) => setStatus(event.target.value as SubscriberStatus)}
+                            className={select}
+                        >
+                            {STATUS_OPTIONS.map((option) => (
+                                <option key={option} value={option}>
+                                    {option}
+                                </option>
+                            ))}
+                        </select>
+                        {fieldErrors.status && (
+                            <p role="alert" className={fieldError}>
+                                {fieldErrors.status[0]}
+                            </p>
+                        )}
+                    </div>
 
-                {formError && <p role="alert">{formError}</p>}
+                    {formError && (
+                        <p role="alert" className={alertError}>
+                            {formError}
+                        </p>
+                    )}
 
-                <button type="button" onClick={onClose} disabled={isSubmitting}>
-                    Cancel
-                </button>
-                <button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? 'Saving…' : 'Save'}
-                </button>
-            </form>
+                    <div className={modalActions}>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            disabled={isSubmitting}
+                            className={buttonSecondary}
+                        >
+                            Cancel
+                        </button>
+                        <button type="submit" disabled={isSubmitting} className={buttonPrimary}>
+                            {isSubmitting ? 'Saving…' : 'Save'}
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     )
 }

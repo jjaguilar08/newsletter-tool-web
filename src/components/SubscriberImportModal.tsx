@@ -1,6 +1,25 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react'
 import { importSubscribers } from '../api/subscribers'
 import { ApiError } from '../lib/apiClient'
+import {
+    alertError,
+    buttonPrimary,
+    buttonSecondary,
+    fieldError,
+    formStack,
+    label,
+    modalActions,
+    modalOverlay,
+    modalPanel,
+    modalTitle,
+    table,
+    tableBody,
+    tableHeadRow,
+    tableRow,
+    tableWrapper,
+    td,
+    th,
+} from '../styles/ui'
 import type { ImportSubscribersResult } from '../types/subscriber'
 
 interface SubscriberImportModalProps {
@@ -48,61 +67,94 @@ export function SubscriberImportModal({ onClose, onImported }: SubscriberImportM
     }
 
     return (
-        <div role="dialog" aria-modal="true" aria-label="Import subscribers">
-            <h2>Import subscribers</h2>
+        <div className={modalOverlay}>
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-label="Import subscribers"
+                className={modalPanel}
+            >
+                <h2 className={modalTitle}>Import subscribers</h2>
 
-            {result ? (
-                <div>
-                    <p>
-                        Created {result.created}, updated {result.updated}, skipped{' '}
-                        {result.skipped}.
-                    </p>
-                    {result.skipped_rows.length > 0 && (
-                        <table>
-                            <caption>Skipped rows</caption>
-                            <thead>
-                                <tr>
-                                    <th>Row</th>
-                                    <th>Reason</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {result.skipped_rows.map((skippedRow) => (
-                                    <tr key={skippedRow.row}>
-                                        <td>{skippedRow.row}</td>
-                                        <td>{skippedRow.reason}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
-                    <button type="button" onClick={onClose}>
-                        Close
-                    </button>
-                </div>
-            ) : (
-                <form onSubmit={handleSubmit} noValidate>
-                    <div>
-                        <label htmlFor="subscriber-import-file">CSV file</label>
-                        <input
-                            id="subscriber-import-file"
-                            type="file"
-                            accept=".csv,text/csv"
-                            onChange={handleFileChange}
-                        />
-                        {fieldErrors.file && <p role="alert">{fieldErrors.file[0]}</p>}
+                {result ? (
+                    <div className="mt-4">
+                        <p className="text-sm text-slate-700">
+                            Created {result.created}, updated {result.updated}, skipped{' '}
+                            {result.skipped}.
+                        </p>
+                        {result.skipped_rows.length > 0 && (
+                            <div className={`${tableWrapper} mt-4`}>
+                                <table className={table}>
+                                    <caption className="sr-only">Skipped rows</caption>
+                                    <thead className={tableHeadRow}>
+                                        <tr>
+                                            <th className={th}>Row</th>
+                                            <th className={th}>Reason</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className={tableBody}>
+                                        {result.skipped_rows.map((skippedRow) => (
+                                            <tr key={skippedRow.row} className={tableRow}>
+                                                <td className={td}>{skippedRow.row}</td>
+                                                <td className={td}>{skippedRow.reason}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                        <div className={modalActions}>
+                            <button type="button" onClick={onClose} className={buttonPrimary}>
+                                Close
+                            </button>
+                        </div>
                     </div>
+                ) : (
+                    <form onSubmit={handleSubmit} noValidate className={`mt-4 ${formStack}`}>
+                        <div>
+                            <label htmlFor="subscriber-import-file" className={label}>
+                                CSV file
+                            </label>
+                            <input
+                                id="subscriber-import-file"
+                                type="file"
+                                accept=".csv,text/csv"
+                                onChange={handleFileChange}
+                                className="block w-full text-sm text-slate-700 file:mr-4 file:rounded-md file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-indigo-700 hover:file:bg-indigo-100"
+                            />
+                            {fieldErrors.file && (
+                                <p role="alert" className={fieldError}>
+                                    {fieldErrors.file[0]}
+                                </p>
+                            )}
+                        </div>
 
-                    {formError && <p role="alert">{formError}</p>}
+                        {formError && (
+                            <p role="alert" className={alertError}>
+                                {formError}
+                            </p>
+                        )}
 
-                    <button type="button" onClick={onClose} disabled={isSubmitting}>
-                        Cancel
-                    </button>
-                    <button type="submit" disabled={isSubmitting || !file}>
-                        {isSubmitting ? 'Importing…' : 'Import'}
-                    </button>
-                </form>
-            )}
+                        <div className={modalActions}>
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                disabled={isSubmitting}
+                                className={buttonSecondary}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={isSubmitting || !file}
+                                className={buttonPrimary}
+                            >
+                                {isSubmitting ? 'Importing…' : 'Import'}
+                            </button>
+                        </div>
+                    </form>
+                )}
+            </div>
         </div>
     )
 }
