@@ -12,4 +12,12 @@ export const handlers = [
         document.cookie = 'XSRF-TOKEN=test-xsrf-token'
         return new HttpResponse(null, { status: 204 })
     }),
+    // CampaignFormModal now opens every new campaign straight into HTML
+    // editor mode, which fetches this on mount - so any test that opens
+    // "Add campaign" hits it, not just tests about the HTML editor
+    // specifically. Tests that care about the actual template content
+    // override this via server.use() as usual.
+    http.get(`${API_URL}/api/campaigns/default-template`, () =>
+        HttpResponse.json({ html: '<p>Default template</p>' }),
+    ),
 ]

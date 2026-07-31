@@ -25,6 +25,18 @@ export const buttonPrimarySm = `${buttonBaseSm} bg-indigo-600 text-white hover:b
 export const buttonSecondarySm = `${buttonBaseSm} border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 focus-visible:ring-indigo-500`
 export const buttonDestructiveSm = `${buttonBaseSm} bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500`
 
+// Icon-only variants of the Sm buttons above, for row-action groups
+// (Campaigns/Subscribers list) rendered as a FontAwesomeIcon + aria-label +
+// title (native tooltip) instead of visible text - a row of five actions
+// as icons reads as one coherent toolbar instead of a wall of small text
+// buttons. Circular/fixed-size rather than px/py padding since there's no
+// label text to size around.
+const iconButtonBase =
+    'inline-flex h-8 w-8 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50'
+export const iconButtonPrimary = `${iconButtonBase} bg-indigo-600 text-white hover:bg-indigo-700 focus-visible:ring-indigo-500`
+export const iconButtonSecondary = `${iconButtonBase} border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 focus-visible:ring-indigo-500`
+export const iconButtonDestructive = `${iconButtonBase} border border-red-200 bg-white text-red-600 hover:bg-red-50 hover:text-red-700 focus-visible:ring-red-500`
+
 export const label = 'mb-1 block text-sm font-medium text-slate-700'
 
 const controlBase =

@@ -208,6 +208,9 @@ describe('CampaignListPage', () => {
         await user.click(screen.getByRole('button', { name: 'Add campaign' }))
 
         const dialog = await screen.findByRole('dialog', { name: 'Add campaign' })
+        // New campaigns default into HTML editor mode - switch to Plain
+        // text explicitly since this test covers the plain-only save path.
+        await user.click(within(dialog).getByRole('tab', { name: 'Plain text' }))
         await user.type(within(dialog).getByLabelText('Subject'), 'New Campaign')
         await user.type(within(dialog).getByLabelText('Content'), 'Some content.')
         await user.click(within(dialog).getByRole('button', { name: 'Save' }))
@@ -451,6 +454,41 @@ describe('CampaignListPage', () => {
 })
 
 describe('CampaignListPage - HTML editor', () => {
+    it('opens a new campaign directly into HTML editor mode, prefilled from the default template', async () => {
+        mockLoggedIn()
+        server.use(
+            http.get(`${API_URL}/api/campaigns`, () => HttpResponse.json(makePage([]))),
+            http.get(`${API_URL}/api/campaigns/default-template`, () =>
+                HttpResponse.json({ html: '<p>Default template</p>' }),
+            ),
+        )
+
+        const user = userEvent.setup()
+        renderApp('/campaigns')
+
+        await screen.findByText('No campaigns yet. Add one to get started.')
+        await user.click(screen.getByRole('button', { name: 'Add campaign' }))
+
+        const dialog = await screen.findByRole('dialog', { name: 'Add campaign' })
+        expect(within(dialog).getByRole('tab', { name: 'HTML editor' })).toHaveAttribute(
+            'aria-selected',
+            'true',
+        )
+        expect(within(dialog).getByRole('tab', { name: 'Plain text' })).toHaveAttribute(
+            'aria-selected',
+            'false',
+        )
+        expect(within(dialog).getByRole('tab', { name: 'Visual builder' })).toHaveAttribute(
+            'aria-selected',
+            'false',
+        )
+
+        const htmlField = await within(dialog).findByLabelText<HTMLTextAreaElement>('HTML')
+        await waitFor(() => {
+            expect(htmlField.value).toBe('<p>Default template</p>')
+        })
+    })
+
     it('prefills from the default template on first use, and round-trips edited HTML with design_json cleared', async () => {
         mockLoggedIn()
         let saved: Campaign | null = null

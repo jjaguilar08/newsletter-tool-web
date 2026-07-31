@@ -40,8 +40,15 @@ const EDITOR_MODE_OPTIONS: { value: EditorMode; label: string }[] = [
 // precedence - a design that's been through the Visual builder always has
 // both fields set, so this only matters for telling "Visual builder" and
 // "HTML editor" campaigns apart when only one of the two is present).
+//
+// A brand-new campaign defaults to HTML editor (not Plain text) - opens
+// straight into CampaignHtmlEditor, which prefills from the default
+// template on mount since it starts with no body_html. Only affects new
+// campaigns; an existing campaign with neither field still opens into
+// Plain text unchanged, since that's a real legacy plain-content campaign,
+// not one that just hasn't been touched yet.
 function determineInitialMode(campaign?: Campaign): EditorMode {
-    if (!campaign) return 'plain'
+    if (!campaign) return 'html'
     if (campaign.design_json) return 'visual'
     if (campaign.body_html) return 'html'
     return 'plain'

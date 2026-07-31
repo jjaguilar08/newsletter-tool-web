@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faPenToSquare, faTrashCan } from '@fortawesome/free-solid-svg-icons'
 import { deleteSubscriber, listSubscribers } from '../api/subscribers'
 import { ApiError } from '../lib/apiClient'
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -8,12 +10,13 @@ import { Spinner } from '../components/Spinner'
 import { useDebouncedValue } from '../hooks/useDebouncedValue'
 import {
     alertError,
-    buttonDestructiveSm,
     buttonPrimary,
     buttonSecondary,
     buttonSecondarySm,
     card,
     emptyState,
+    iconButtonDestructive,
+    iconButtonSecondary,
     input,
     label,
     loadingState,
@@ -279,9 +282,11 @@ export function SubscriberListPage() {
                                                     onClick={() =>
                                                         setFormModal({ mode: 'edit', subscriber })
                                                     }
-                                                    className={buttonSecondarySm}
+                                                    aria-label="Edit"
+                                                    title="Edit"
+                                                    className={iconButtonSecondary}
                                                 >
-                                                    Edit
+                                                    <FontAwesomeIcon icon={faPenToSquare} />
                                                 </button>
                                                 <button
                                                     type="button"
@@ -289,9 +294,11 @@ export function SubscriberListPage() {
                                                         setDeleteError(null)
                                                         setDeleteTarget(subscriber)
                                                     }}
-                                                    className={buttonDestructiveSm}
+                                                    aria-label="Delete"
+                                                    title="Delete"
+                                                    className={iconButtonDestructive}
                                                 >
-                                                    Delete
+                                                    <FontAwesomeIcon icon={faTrashCan} />
                                                 </button>
                                             </div>
                                         </td>

@@ -1,4 +1,13 @@
 import { useEffect, useState } from 'react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import {
+    faClipboardList,
+    faClock,
+    faEye,
+    faPaperPlane,
+    faPenToSquare,
+    faTrashCan,
+} from '@fortawesome/free-solid-svg-icons'
 import { deleteCampaign, listCampaigns, sendCampaign } from '../api/campaigns'
 import { ApiError } from '../lib/apiClient'
 import { CampaignFormModal } from '../components/CampaignFormModal'
@@ -10,13 +19,14 @@ import { ConfirmDialog } from '../components/ConfirmDialog'
 import { Spinner } from '../components/Spinner'
 import {
     alertError,
-    buttonDestructiveSm,
     buttonPrimary,
-    buttonPrimarySm,
     buttonSecondary,
     buttonSecondarySm,
     card,
     emptyState,
+    iconButtonDestructive,
+    iconButtonPrimary,
+    iconButtonSecondary,
     label,
     loadingState,
     paginationBar,
@@ -295,9 +305,11 @@ export function CampaignListPage() {
                                                             onClick={() =>
                                                                 setPreviewTarget(campaign)
                                                             }
-                                                            className={buttonSecondarySm}
+                                                            aria-label="Preview"
+                                                            title="Preview"
+                                                            className={iconButtonSecondary}
                                                         >
-                                                            Preview
+                                                            <FontAwesomeIcon icon={faEye} />
                                                         </button>
                                                     )}
                                                     {isEditable ? (
@@ -310,9 +322,13 @@ export function CampaignListPage() {
                                                                         campaign,
                                                                     })
                                                                 }
-                                                                className={buttonSecondarySm}
+                                                                aria-label="Edit"
+                                                                title="Edit"
+                                                                className={iconButtonSecondary}
                                                             >
-                                                                Edit
+                                                                <FontAwesomeIcon
+                                                                    icon={faPenToSquare}
+                                                                />
                                                             </button>
                                                             <button
                                                                 type="button"
@@ -320,18 +336,26 @@ export function CampaignListPage() {
                                                                     setDeleteError(null)
                                                                     setDeleteTarget(campaign)
                                                                 }}
-                                                                className={buttonDestructiveSm}
+                                                                aria-label="Delete"
+                                                                title="Delete"
+                                                                className={iconButtonDestructive}
                                                             >
-                                                                Delete
+                                                                <FontAwesomeIcon
+                                                                    icon={faTrashCan}
+                                                                />
                                                             </button>
                                                         </>
                                                     ) : (
                                                         <button
                                                             type="button"
                                                             onClick={() => setViewTarget(campaign)}
-                                                            className={buttonSecondarySm}
+                                                            aria-label="View"
+                                                            title="View"
+                                                            className={iconButtonSecondary}
                                                         >
-                                                            View
+                                                            <FontAwesomeIcon
+                                                                icon={faClipboardList}
+                                                            />
                                                         </button>
                                                     )}
                                                     {isDraft && (
@@ -341,9 +365,11 @@ export function CampaignListPage() {
                                                                 onClick={() =>
                                                                     setScheduleTarget(campaign)
                                                                 }
-                                                                className={buttonSecondarySm}
+                                                                aria-label="Schedule"
+                                                                title="Schedule"
+                                                                className={iconButtonSecondary}
                                                             >
-                                                                Schedule
+                                                                <FontAwesomeIcon icon={faClock} />
                                                             </button>
                                                             <button
                                                                 type="button"
@@ -351,9 +377,13 @@ export function CampaignListPage() {
                                                                     setSendError(null)
                                                                     setSendTarget(campaign)
                                                                 }}
-                                                                className={buttonPrimarySm}
+                                                                aria-label="Send Now"
+                                                                title="Send Now"
+                                                                className={iconButtonPrimary}
                                                             >
-                                                                Send Now
+                                                                <FontAwesomeIcon
+                                                                    icon={faPaperPlane}
+                                                                />
                                                             </button>
                                                         </>
                                                     )}
