@@ -2,7 +2,7 @@ import { useRef, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { ApiError } from '../lib/apiClient'
-import { alertError, beaconLogo, buttonPrimary, card, formStack, input, label } from '../styles/ui'
+import { alertError, buttonPrimary, card, formStack, input, label } from '../styles/ui'
 
 export function LoginPage() {
     const { login } = useAuth()
@@ -45,8 +45,12 @@ export function LoginPage() {
     return (
         <main className="flex min-h-screen items-center justify-center bg-beacon-cream px-4">
             <div className={`w-full max-w-sm ${card} p-8`}>
-                <p className={`mb-4 text-center ${beaconLogo}`}>Beacon</p>
-                <h1 className="mb-6 text-center font-serif text-2xl font-bold tracking-tight text-beacon-ink">                </h1>
+                <p className="mb-4 text-center font-serif text-xl font-bold tracking-tight text-beacon-terracotta">
+                    Beacon
+                </p>
+                <h1 className="mb-6 text-center font-serif text-2xl font-bold tracking-tight text-beacon-ink">
+                    Log in
+                </h1>
                 <form onSubmit={handleSubmit} noValidate className={formStack}>
                     <div>
                         <label htmlFor="email" className={label}>
