@@ -92,8 +92,10 @@ export const modalPanel =
     'flex max-h-[90vh] w-full max-w-md flex-col overflow-y-auto rounded-lg bg-white p-6 shadow-xl'
 export const modalPanelWide =
     'flex max-h-[90vh] w-full max-w-2xl flex-col overflow-y-auto rounded-lg bg-white p-6 shadow-xl'
+// max-w-7xl (not max-w-5xl) - the HTML editor tab splits into a
+// side-by-side code/preview layout that needs real room for both panes.
 export const modalPanelXWide =
-    'flex max-h-[90vh] w-full max-w-5xl flex-col overflow-y-auto rounded-lg bg-white p-6 shadow-xl'
+    'flex max-h-[90vh] w-full max-w-7xl flex-col overflow-y-auto rounded-lg bg-white p-6 shadow-xl'
 
 export const formStack = 'space-y-4'
 export const modalActions = 'mt-6 flex justify-end gap-3'

@@ -81,7 +81,7 @@ export function CampaignPreviewModal({ campaign, onClose }: CampaignPreviewModal
                             title="Campaign preview"
                             srcDoc={preview.html}
                             sandbox=""
-                            className="mt-3 h-96 w-full rounded-md border border-slate-200"
+                            className="mt-3 h-[70vh] w-full rounded-md border border-slate-200"
                         />
                     </>
                 )}

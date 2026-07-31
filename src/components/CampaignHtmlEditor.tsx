@@ -65,41 +65,52 @@ export function CampaignHtmlEditor({ value, onChange }: CampaignHtmlEditorProps)
 
     return (
         <div>
-            <div className="flex items-center justify-between gap-3">
-                <label htmlFor="campaign-html" className={label}>
-                    HTML
-                </label>
-                <button
-                    type="button"
-                    onClick={() => setIsResetConfirmOpen(true)}
-                    className={buttonSecondary}
-                >
-                    Reset to default template
-                </button>
-            </div>
-            {prefillError && (
-                <p role="alert" className={`mb-2 ${alertError}`}>
-                    {prefillError}
-                </p>
-            )}
-            <textarea
-                id="campaign-html"
-                value={value}
-                onChange={(event) => onChange(event.target.value)}
-                spellCheck={false}
-                className={monospaceTextarea}
-            />
+            {/* Side by side on wide screens (lg+) so the code and its
+                rendered result are both visible at a usable size at once;
+                stacks on narrower screens, same as before. */}
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <div>
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                        <label htmlFor="campaign-html" className={label}>
+                            HTML
+                        </label>
+                        <button
+                            type="button"
+                            onClick={() => setIsResetConfirmOpen(true)}
+                            className={buttonSecondary}
+                        >
+                            Reset to default template
+                        </button>
+                    </div>
+                    {prefillError && (
+                        <p role="alert" className={`mb-2 ${alertError}`}>
+                            {prefillError}
+                        </p>
+                    )}
+                    <textarea
+                        id="campaign-html"
+                        value={value}
+                        onChange={(event) => onChange(event.target.value)}
+                        spellCheck={false}
+                        className={`h-[32rem] ${monospaceTextarea}`}
+                    />
+                </div>
 
-            <p className={`mt-4 ${label}`}>Preview</p>
-            <p className={mutedText}>Updates a moment after you stop typing.</p>
-            {/* Same empty-sandbox pattern as CampaignPreviewModal - admin-authored
-                HTML is still arbitrary HTML, so no allow-scripts/allow-same-origin. */}
-            <iframe
-                title="HTML editor preview"
-                srcDoc={previewHtml}
-                sandbox=""
-                className="mt-2 h-96 w-full rounded-md border border-slate-200"
-            />
+                <div>
+                    <div className="mb-3">
+                        <p className={label}>Preview</p>
+                        <p className={mutedText}>Updates a moment after you stop typing.</p>
+                    </div>
+                    {/* Same empty-sandbox pattern as CampaignPreviewModal - admin-authored
+                        HTML is still arbitrary HTML, so no allow-scripts/allow-same-origin. */}
+                    <iframe
+                        title="HTML editor preview"
+                        srcDoc={previewHtml}
+                        sandbox=""
+                        className="h-[32rem] w-full rounded-md border border-slate-200"
+                    />
+                </div>
+            </div>
 
             {isResetConfirmOpen && (
                 <ConfirmDialog
