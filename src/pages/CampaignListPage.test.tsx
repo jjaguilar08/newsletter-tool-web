@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { forwardRef, useImperativeHandle, type ForwardedRef } from 'react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
@@ -8,6 +9,42 @@ import type { Campaign } from '../types/campaign'
 import type { CampaignSend } from '../types/campaignSend'
 import type { Paginated } from '../types/pagination'
 
+interface MockDesignEditorProps {
+    initialContent: string
+    initialDesign: Record<string, unknown> | null
+}
+
+interface MockDesignEditorHandle {
+    exportDesign: () => { html: string; json: object } | null
+}
+
+// Controlled from within individual tests (reset in beforeEach below) to
+// drive CampaignFormModal's Save behavior without a real grapesjs instance.
+let mockExportResult: { html: string; json: object } | null = null
+let lastEditorProps: MockDesignEditorProps | null = null
+
+// grapesjs does real DOM measurement/layout work jsdom can't support (it
+// pegs a test worker's CPU indefinitely) - this page's tests care about the
+// campaign CRUD flow, not the design editor's internals, which get their own
+// coverage in CampaignContentEditor.test.tsx against a mocked grapesjs.
+vi.mock('../components/CampaignContentEditor', () => ({
+    CampaignContentEditor: forwardRef(function CampaignContentEditor(
+        props: MockDesignEditorProps,
+        ref: ForwardedRef<MockDesignEditorHandle>,
+    ) {
+        lastEditorProps = props
+        useImperativeHandle(ref, () => ({
+            exportDesign: () => mockExportResult,
+        }))
+        return <div data-testid="campaign-content-editor-stub" />
+    }),
+}))
+
+beforeEach(() => {
+    mockExportResult = null
+    lastEditorProps = null
+})
+
 const API_URL = import.meta.env.VITE_API_URL
 
 function makeCampaign(overrides: Partial<Campaign> = {}): Campaign {
@@ -15,6 +52,8 @@ function makeCampaign(overrides: Partial<Campaign> = {}): Campaign {
         id: 1,
         subject: 'July Newsletter',
         content: 'Hello subscribers!',
+        body_html: null,
+        design_json: null,
         status: 'draft',
         scheduled_at: null,
         sent_at: null,
@@ -149,6 +188,12 @@ describe('CampaignListPage', () => {
                 created = true
                 const body = (await request.json()) as { subject: string; content: string }
                 expect(body).not.toHaveProperty('status')
+                // Untouched design editor (mockExportResult stays null,
+                // its default) - body_html/design_json must be omitted
+                // entirely, not sent as null, so a plain create can't
+                // stamp an empty design onto the campaign.
+                expect(body).not.toHaveProperty('body_html')
+                expect(body).not.toHaveProperty('design_json')
                 return HttpResponse.json(
                     { data: makeCampaign({ id: 2, subject: body.subject, content: body.content }) },
                     { status: 201 },
@@ -171,6 +216,70 @@ describe('CampaignListPage', () => {
             expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
         })
         expect(await screen.findByText('New Campaign')).toBeInTheDocument()
+    })
+
+    it('sends body_html/design_json alongside subject/content once a design has been built', async () => {
+        mockLoggedIn()
+        mockExportResult = { html: '<table><tr><td>Hi</td></tr></table>', json: { pages: [] } }
+        server.use(
+            http.get(`${API_URL}/api/campaigns`, () => HttpResponse.json(makePage([]))),
+            http.post(`${API_URL}/api/campaigns`, async ({ request }) => {
+                const body = (await request.json()) as {
+                    subject: string
+                    content: string
+                    body_html: string
+                    design_json: object
+                }
+                expect(body.body_html).toBe('<table><tr><td>Hi</td></tr></table>')
+                expect(body.design_json).toEqual({ pages: [] })
+                return HttpResponse.json(
+                    { data: makeCampaign({ id: 2, subject: body.subject, content: body.content }) },
+                    { status: 201 },
+                )
+            }),
+        )
+
+        const user = userEvent.setup()
+        renderApp('/campaigns')
+
+        await screen.findByText('No campaigns yet. Add one to get started.')
+        await user.click(screen.getByRole('button', { name: 'Add campaign' }))
+
+        const dialog = await screen.findByRole('dialog', { name: 'Add campaign' })
+        await user.type(within(dialog).getByLabelText('Subject'), 'New Campaign')
+        await user.type(within(dialog).getByLabelText('Content'), 'Some content.')
+        await user.click(within(dialog).getByRole('button', { name: 'Save' }))
+
+        await waitFor(() => {
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        })
+    })
+
+    it("passes a campaign's saved design into the content editor when editing", async () => {
+        mockLoggedIn()
+        const savedDesign = { pages: [], styles: [], assets: [], symbols: [] }
+        server.use(
+            http.get(`${API_URL}/api/campaigns`, () =>
+                HttpResponse.json(
+                    makePage([
+                        makeCampaign({
+                            body_html: '<table><tr><td>Existing</td></tr></table>',
+                            design_json: savedDesign,
+                        }),
+                    ]),
+                ),
+            ),
+        )
+
+        const user = userEvent.setup()
+        renderApp('/campaigns')
+
+        await screen.findByText('July Newsletter')
+        await user.click(screen.getByRole('button', { name: 'Edit' }))
+
+        await screen.findByRole('dialog', { name: 'Edit campaign' })
+        expect(lastEditorProps?.initialDesign).toEqual(savedDesign)
+        expect(lastEditorProps?.initialContent).toBe('Hello subscribers!')
     })
 
     it('surfaces a validation error inline when creating with a blank subject', async () => {

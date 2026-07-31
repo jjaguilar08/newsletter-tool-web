@@ -60,3 +60,11 @@ export async function scheduleCampaign(id: number, scheduledAt: string): Promise
     )
     return response.data
 }
+
+// CampaignAssetController::store() returns a plain { url } - not wrapped in
+// { data: ... } like store/update, since it's not returning a Campaign.
+export function uploadCampaignAsset(file: File): Promise<{ url: string }> {
+    const formData = new FormData()
+    formData.set('image', file)
+    return apiClient.postForm<{ url: string }>('/api/campaigns/assets', formData)
+}

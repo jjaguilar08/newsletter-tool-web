@@ -6,6 +6,10 @@ export interface Campaign {
     id: number
     subject: string
     content: string
+    // Both null until a campaign has been authored/saved at least once
+    // through the GrapesJS design editor - see CampaignContentEditor.
+    body_html: string | null
+    design_json: Record<string, unknown> | null
     status: CampaignStatus
     scheduled_at: string | null
     sent_at: string | null
@@ -22,6 +26,10 @@ export interface Campaign {
 export interface CampaignInput {
     subject: string
     content: string
+    // Both optional and sent together or not at all - see
+    // CampaignFormModal's handleSubmit for when these are populated.
+    body_html?: string
+    design_json?: Record<string, unknown>
 }
 
 export type CampaignUpdateInput = Partial<CampaignInput>

@@ -16,6 +16,10 @@ dist-ssr
 .env
 coverage
 
+# Personal notes copied from other projects, not for this repo
+PROJECT_NOTES.md
+CLAUDE.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
