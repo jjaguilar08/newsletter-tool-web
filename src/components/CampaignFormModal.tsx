@@ -229,7 +229,7 @@ export function CampaignFormModal({ campaign, onClose, onSaved }: CampaignFormMo
                                 Subject/Content - Export below is just a preview of what Save will
                                 send.
                             </p>
-                            <div className="mt-3 overflow-hidden rounded-md border border-slate-300">
+                            <div className="mt-3 overflow-hidden rounded-md border border-beacon-muted-banner">
                                 <CampaignContentEditor
                                     ref={designEditorRef}
                                     initialContent={isEditing ? content : ''}
@@ -249,13 +249,13 @@ export function CampaignFormModal({ campaign, onClose, onSaved }: CampaignFormMo
                                 <div className="mt-3 space-y-3">
                                     <div>
                                         <p className={label}>Exported HTML</p>
-                                        <pre className="max-h-48 overflow-auto rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
+                                        <pre className="max-h-48 overflow-auto rounded-md border border-beacon-muted-banner bg-beacon-cream p-3 text-xs text-beacon-ink">
                                             {designExport.html}
                                         </pre>
                                     </div>
                                     <div>
                                         <p className={label}>Exported JSON</p>
-                                        <pre className="max-h-48 overflow-auto rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
+                                        <pre className="max-h-48 overflow-auto rounded-md border border-beacon-muted-banner bg-beacon-cream p-3 text-xs text-beacon-ink">
                                             {JSON.stringify(designExport.json, null, 2)}
                                         </pre>
                                     </div>

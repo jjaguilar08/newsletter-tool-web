@@ -37,7 +37,7 @@ export function ConfirmDialog({
         <div className={modalOverlay}>
             <div role="dialog" aria-modal="true" aria-label={title} className={modalPanel}>
                 <h2 className={modalTitle}>{title}</h2>
-                <p className="mt-2 text-sm text-slate-600">{message}</p>
+                <p className="mt-2 text-sm text-beacon-muted">{message}</p>
                 {error && (
                     <p role="alert" className={`mt-3 ${alertError}`}>
                         {error}

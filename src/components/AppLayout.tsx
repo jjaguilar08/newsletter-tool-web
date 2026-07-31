@@ -25,10 +25,10 @@ export function AppLayout() {
     const { user, logout } = useAuth()
 
     return (
-        <div className="flex min-h-screen bg-slate-50">
+        <div className="flex min-h-screen bg-beacon-cream">
             <aside className={sidebar}>
                 <div>
-                    <p className={sidebarBrand}>Newsletter Tool</p>
+                    <p className={sidebarBrand}>Beacon</p>
                     <nav className={sidebarNav}>
                         {NAV_ITEMS.map((item) => (
                             <NavLink

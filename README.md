@@ -1,8 +1,8 @@
-# Newsletter Tool - Frontend
+# Beacon - Frontend
 
-React + TypeScript SPA for the Newsletter Tool, built with Vite. Talks to
-the Laravel API in the parent directory over Sanctum's cookie-based SPA
-auth (no tokens).
+React + TypeScript SPA for Beacon, built with Vite. Talks to the Laravel
+API in the parent directory over Sanctum's cookie-based SPA auth (no
+tokens).
 
 ## Setup
 

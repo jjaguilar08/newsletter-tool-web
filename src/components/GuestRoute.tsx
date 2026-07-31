@@ -9,7 +9,7 @@ export function GuestRoute() {
 
     if (isLoading) {
         return (
-            <div className="flex min-h-screen items-center justify-center gap-3 bg-slate-50 text-sm text-slate-500">
+            <div className="flex min-h-screen items-center justify-center gap-3 bg-beacon-cream text-sm text-beacon-muted">
                 <Spinner />
                 <span>Loading…</span>
             </div>

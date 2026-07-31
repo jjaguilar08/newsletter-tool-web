@@ -78,7 +78,7 @@ export function SubscriberImportModal({ onClose, onImported }: SubscriberImportM
 
                 {result ? (
                     <div className="mt-4">
-                        <p className="text-sm text-slate-700">
+                        <p className="text-sm text-beacon-ink">
                             Created {result.created}, updated {result.updated}, skipped{' '}
                             {result.skipped}.
                         </p>
@@ -120,7 +120,7 @@ export function SubscriberImportModal({ onClose, onImported }: SubscriberImportM
                                 type="file"
                                 accept=".csv,text/csv"
                                 onChange={handleFileChange}
-                                className="block w-full text-sm text-slate-700 file:mr-4 file:rounded-md file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-indigo-700 hover:file:bg-indigo-100"
+                                className="block w-full text-sm text-beacon-ink file:mr-4 file:rounded-md file:border-0 file:bg-beacon-terracotta/10 file:px-4 file:py-2 file:text-sm file:font-medium file:text-beacon-terracotta hover:file:bg-beacon-terracotta/20"
                             />
                             {fieldErrors.file && (
                                 <p role="alert" className={fieldError}>

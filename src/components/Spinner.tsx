@@ -9,7 +9,7 @@ export function Spinner({ className = 'h-5 w-5' }: SpinnerProps) {
     return (
         <span
             aria-hidden="true"
-            className={`inline-block animate-spin rounded-full border-2 border-slate-300 border-t-indigo-600 ${className}`}
+            className={`inline-block animate-spin rounded-full border-2 border-beacon-muted-banner border-t-beacon-terracotta ${className}`}
         />
     )
 }

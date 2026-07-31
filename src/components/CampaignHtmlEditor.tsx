@@ -107,7 +107,7 @@ export function CampaignHtmlEditor({ value, onChange }: CampaignHtmlEditorProps)
                         title="HTML editor preview"
                         srcDoc={previewHtml}
                         sandbox=""
-                        className="h-[32rem] w-full rounded-md border border-slate-200"
+                        className="h-[32rem] w-full rounded-md border border-beacon-muted-banner"
                     />
                 </div>
             </div>

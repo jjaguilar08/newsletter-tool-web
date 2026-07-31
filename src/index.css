@@ -2,6 +2,28 @@
 
 @theme {
     --font-sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+
+    /* Beacon brand palette/typography (public marketing page only, for now -
+       the app shell itself stays on the indigo/slate system per Day 16
+       until that's deliberately revisited). Same hex values as the
+       terracotta/cream/sage palette already used in the backend's
+       campaign-default-template Blade view and design-preference mockup,
+       so the marketing page, the email template, and the eventual app
+       rebrand read as one product rather than three different ones.
+       `font-serif` overrides Tailwind's built-in generic serif stack with
+       this exact one - no webfont loading, so it's free and stays fast. */
+    --font-serif: Georgia, 'Times New Roman', serif;
+    --color-beacon-cream: #f7f1e6;
+    --color-beacon-cream-footer: #efe6d3;
+    --color-beacon-cream-text: #fbf3e6;
+    --color-beacon-terracotta: #c1793f;
+    --color-beacon-terracotta-dark: #a8632f;
+    --color-beacon-ink: #2a2118;
+    --color-beacon-muted-banner: #ead9c4;
+    --color-beacon-muted: #6b6259;
+    --color-beacon-sage: #eaf3de;
+    --color-beacon-sage-star: #8fa377;
+    --color-beacon-sage-avatar: #c7d4b4;
 }
 
 :root {

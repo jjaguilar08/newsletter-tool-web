@@ -69,8 +69,8 @@ export function CampaignPreviewModal({ campaign, onClose }: CampaignPreviewModal
 
                 {loadState === 'ready' && preview && (
                     <>
-                        <p className="mt-4 text-sm text-slate-700">
-                            <span className="font-medium text-slate-900">Subject:</span>{' '}
+                        <p className="mt-4 text-sm text-beacon-ink">
+                            <span className="font-medium text-beacon-ink">Subject:</span>{' '}
                             {preview.subject}
                         </p>
                         {/* Campaign content is staff-authored but still arbitrary
@@ -81,7 +81,7 @@ export function CampaignPreviewModal({ campaign, onClose }: CampaignPreviewModal
                             title="Campaign preview"
                             srcDoc={preview.html}
                             sandbox=""
-                            className="mt-3 h-[70vh] w-full rounded-md border border-slate-200"
+                            className="mt-3 h-[70vh] w-full rounded-md border border-beacon-muted-banner"
                         />
                     </>
                 )}

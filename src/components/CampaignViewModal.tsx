@@ -92,7 +92,7 @@ export function CampaignViewModal({ campaign, onClose }: CampaignViewModalProps)
                 className={modalPanelWide}
             >
                 <h2 className={modalTitle}>{campaign.subject}</h2>
-                <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">
+                <p className="mt-2 whitespace-pre-wrap text-sm text-beacon-ink">
                     {campaign.content}
                 </p>
 

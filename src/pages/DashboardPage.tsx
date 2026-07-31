@@ -11,6 +11,8 @@ import {
     loadingState,
     pageContainer,
     pageHeading,
+    statLabel,
+    statValue,
     subheading,
     table,
     tableBody,
@@ -98,22 +100,16 @@ export function DashboardPage() {
                             <h2 className={subheading}>Subscribers</h2>
                             <dl className="mt-4 space-y-2 text-sm">
                                 <div className="flex items-center justify-between">
-                                    <dt className="text-slate-600">Subscribed</dt>
-                                    <dd className="font-semibold text-slate-900">
-                                        {stats.subscribers.subscribed}
-                                    </dd>
+                                    <dt className={statLabel}>Subscribed</dt>
+                                    <dd className={statValue}>{stats.subscribers.subscribed}</dd>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <dt className="text-slate-600">Unsubscribed</dt>
-                                    <dd className="font-semibold text-slate-900">
-                                        {stats.subscribers.unsubscribed}
-                                    </dd>
+                                    <dt className={statLabel}>Unsubscribed</dt>
+                                    <dd className={statValue}>{stats.subscribers.unsubscribed}</dd>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <dt className="text-slate-600">Bounced</dt>
-                                    <dd className="font-semibold text-slate-900">
-                                        {stats.subscribers.bounced}
-                                    </dd>
+                                    <dt className={statLabel}>Bounced</dt>
+                                    <dd className={statValue}>{stats.subscribers.bounced}</dd>
                                 </div>
                             </dl>
                         </section>
@@ -122,28 +118,20 @@ export function DashboardPage() {
                             <h2 className={subheading}>Campaigns</h2>
                             <dl className="mt-4 space-y-2 text-sm">
                                 <div className="flex items-center justify-between">
-                                    <dt className="text-slate-600">Draft</dt>
-                                    <dd className="font-semibold text-slate-900">
-                                        {stats.campaigns.draft}
-                                    </dd>
+                                    <dt className={statLabel}>Draft</dt>
+                                    <dd className={statValue}>{stats.campaigns.draft}</dd>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <dt className="text-slate-600">Scheduled</dt>
-                                    <dd className="font-semibold text-slate-900">
-                                        {stats.campaigns.scheduled}
-                                    </dd>
+                                    <dt className={statLabel}>Scheduled</dt>
+                                    <dd className={statValue}>{stats.campaigns.scheduled}</dd>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <dt className="text-slate-600">Sending</dt>
-                                    <dd className="font-semibold text-slate-900">
-                                        {stats.campaigns.sending}
-                                    </dd>
+                                    <dt className={statLabel}>Sending</dt>
+                                    <dd className={statValue}>{stats.campaigns.sending}</dd>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <dt className="text-slate-600">Sent</dt>
-                                    <dd className="font-semibold text-slate-900">
-                                        {stats.campaigns.sent}
-                                    </dd>
+                                    <dt className={statLabel}>Sent</dt>
+                                    <dd className={statValue}>{stats.campaigns.sent}</dd>
                                 </div>
                             </dl>
                         </section>
@@ -152,16 +140,12 @@ export function DashboardPage() {
                             <h2 className={subheading}>Campaign sends</h2>
                             <dl className="mt-4 space-y-2 text-sm">
                                 <div className="flex items-center justify-between">
-                                    <dt className="text-slate-600">Sent</dt>
-                                    <dd className="font-semibold text-slate-900">
-                                        {stats.campaign_sends.sent}
-                                    </dd>
+                                    <dt className={statLabel}>Sent</dt>
+                                    <dd className={statValue}>{stats.campaign_sends.sent}</dd>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <dt className="text-slate-600">Failed</dt>
-                                    <dd className="font-semibold text-slate-900">
-                                        {stats.campaign_sends.failed}
-                                    </dd>
+                                    <dt className={statLabel}>Failed</dt>
+                                    <dd className={statValue}>{stats.campaign_sends.failed}</dd>
                                 </div>
                             </dl>
                         </section>
