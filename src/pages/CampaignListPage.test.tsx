@@ -248,6 +248,7 @@ describe('CampaignListPage', () => {
         const dialog = await screen.findByRole('dialog', { name: 'Add campaign' })
         await user.type(within(dialog).getByLabelText('Subject'), 'New Campaign')
         await user.type(within(dialog).getByLabelText('Content'), 'Some content.')
+        await user.click(within(dialog).getByRole('tab', { name: 'Visual builder' }))
         await user.click(within(dialog).getByRole('button', { name: 'Save' }))
 
         await waitFor(() => {
@@ -446,6 +447,203 @@ describe('CampaignListPage', () => {
         await screen.findByText('Page 1 Campaign')
 
         expect(requestedPages).toEqual(['1', '2', '1'])
+    })
+})
+
+describe('CampaignListPage - HTML editor', () => {
+    it('prefills from the default template on first use, and round-trips edited HTML with design_json cleared', async () => {
+        mockLoggedIn()
+        let saved: Campaign | null = null
+        server.use(
+            http.get(`${API_URL}/api/campaigns`, () =>
+                HttpResponse.json(makePage(saved ? [saved] : [])),
+            ),
+            http.get(`${API_URL}/api/campaigns/default-template`, () =>
+                HttpResponse.json({ html: '<p>Default template</p>' }),
+            ),
+            http.post(`${API_URL}/api/campaigns`, async ({ request }) => {
+                const body = (await request.json()) as {
+                    subject: string
+                    content: string
+                    body_html: string
+                    design_json: unknown
+                }
+                expect(body.body_html).toBe('<p>Edited by hand</p>')
+                expect(body.design_json).toBeNull()
+                saved = makeCampaign({
+                    id: 2,
+                    subject: body.subject,
+                    content: body.content,
+                    body_html: body.body_html,
+                    design_json: null,
+                })
+                return HttpResponse.json({ data: saved }, { status: 201 })
+            }),
+        )
+
+        const user = userEvent.setup()
+        renderApp('/campaigns')
+
+        await screen.findByText('No campaigns yet. Add one to get started.')
+        await user.click(screen.getByRole('button', { name: 'Add campaign' }))
+
+        const dialog = await screen.findByRole('dialog', { name: 'Add campaign' })
+        await user.type(within(dialog).getByLabelText('Subject'), 'New Campaign')
+        await user.type(within(dialog).getByLabelText('Content'), 'Some content.')
+        await user.click(within(dialog).getByRole('tab', { name: 'HTML editor' }))
+
+        const htmlField = await within(dialog).findByLabelText<HTMLTextAreaElement>('HTML')
+        await waitFor(() => {
+            expect(htmlField.value).toBe('<p>Default template</p>')
+        })
+
+        await user.clear(htmlField)
+        await user.type(htmlField, '<p>Edited by hand</p>')
+        await user.click(within(dialog).getByRole('button', { name: 'Save' }))
+
+        await waitFor(() => {
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        })
+        expect(await screen.findByText('New Campaign')).toBeInTheDocument()
+
+        // Reopen for editing - loads back into HTML editor mode (not Plain
+        // text or Visual builder) with the edited content intact.
+        await user.click(screen.getByRole('button', { name: 'Edit' }))
+        const editDialog = await screen.findByRole('dialog', { name: 'Edit campaign' })
+        expect(within(editDialog).getByRole('tab', { name: 'HTML editor' })).toHaveAttribute(
+            'aria-selected',
+            'true',
+        )
+        expect(within(editDialog).getByRole('tab', { name: 'Plain text' })).toHaveAttribute(
+            'aria-selected',
+            'false',
+        )
+        expect(within(editDialog).getByRole('tab', { name: 'Visual builder' })).toHaveAttribute(
+            'aria-selected',
+            'false',
+        )
+        expect(within(editDialog).getByLabelText<HTMLTextAreaElement>('HTML').value).toBe(
+            '<p>Edited by hand</p>',
+        )
+
+        // ...and the preview iframe renders the loaded HTML correctly.
+        const previewIframe =
+            within(editDialog).getByTitle<HTMLIFrameElement>('HTML editor preview')
+        await waitFor(() => {
+            expect(previewIframe.srcdoc).toBe('<p>Edited by hand</p>')
+        })
+        expect(previewIframe.getAttribute('sandbox')).toBe('')
+    })
+
+    it('debounces the live preview as the admin types', async () => {
+        mockLoggedIn()
+        server.use(
+            http.get(`${API_URL}/api/campaigns`, () => HttpResponse.json(makePage([]))),
+            http.get(`${API_URL}/api/campaigns/default-template`, () =>
+                HttpResponse.json({ html: '' }),
+            ),
+        )
+
+        const user = userEvent.setup()
+        renderApp('/campaigns')
+
+        await screen.findByText('No campaigns yet. Add one to get started.')
+        await user.click(screen.getByRole('button', { name: 'Add campaign' }))
+
+        const dialog = await screen.findByRole('dialog', { name: 'Add campaign' })
+        await user.click(within(dialog).getByRole('tab', { name: 'HTML editor' }))
+
+        const htmlField = await within(dialog).findByLabelText<HTMLTextAreaElement>('HTML')
+        await user.type(htmlField, '<p>Hi <strong>there</strong></p>')
+
+        const iframe = within(dialog).getByTitle<HTMLIFrameElement>('HTML editor preview')
+        expect(iframe.getAttribute('sandbox')).toBe('')
+
+        await waitFor(
+            () => {
+                expect(iframe.srcdoc).toBe('<p>Hi <strong>there</strong></p>')
+            },
+            { timeout: 2000 },
+        )
+    })
+
+    it('opens an existing HTML-editor campaign in HTML editor mode without refetching the default template', async () => {
+        mockLoggedIn()
+        let templateRequests = 0
+        server.use(
+            http.get(`${API_URL}/api/campaigns`, () =>
+                HttpResponse.json(
+                    makePage([
+                        makeCampaign({ body_html: '<p>Existing HTML</p>', design_json: null }),
+                    ]),
+                ),
+            ),
+            http.get(`${API_URL}/api/campaigns/default-template`, () => {
+                templateRequests += 1
+                return HttpResponse.json({ html: '<p>Default template</p>' })
+            }),
+        )
+
+        const user = userEvent.setup()
+        renderApp('/campaigns')
+
+        await screen.findByText('July Newsletter')
+        await user.click(screen.getByRole('button', { name: 'Edit' }))
+
+        const dialog = await screen.findByRole('dialog', { name: 'Edit campaign' })
+        expect(within(dialog).getByRole('tab', { name: 'HTML editor' })).toHaveAttribute(
+            'aria-selected',
+            'true',
+        )
+        expect(within(dialog).getByLabelText<HTMLTextAreaElement>('HTML').value).toBe(
+            '<p>Existing HTML</p>',
+        )
+        expect(templateRequests).toBe(0)
+    })
+
+    it('replaces the HTML with the default template only after confirming Reset', async () => {
+        mockLoggedIn()
+        server.use(
+            http.get(`${API_URL}/api/campaigns`, () =>
+                HttpResponse.json(
+                    makePage([
+                        makeCampaign({ body_html: '<p>Existing HTML</p>', design_json: null }),
+                    ]),
+                ),
+            ),
+            http.get(`${API_URL}/api/campaigns/default-template`, () =>
+                HttpResponse.json({ html: '<p>Default template</p>' }),
+            ),
+        )
+
+        const user = userEvent.setup()
+        renderApp('/campaigns')
+
+        await screen.findByText('July Newsletter')
+        await user.click(screen.getByRole('button', { name: 'Edit' }))
+
+        const dialog = await screen.findByRole('dialog', { name: 'Edit campaign' })
+        await user.click(within(dialog).getByRole('button', { name: 'Reset to default template' }))
+
+        const confirmDialog = await screen.findByRole('dialog', {
+            name: 'Reset to default template',
+        })
+        await user.click(within(confirmDialog).getByRole('button', { name: 'Cancel' }))
+        expect(within(dialog).getByLabelText<HTMLTextAreaElement>('HTML').value).toBe(
+            '<p>Existing HTML</p>',
+        )
+
+        await user.click(within(dialog).getByRole('button', { name: 'Reset to default template' }))
+        const confirmDialogAgain = await screen.findByRole('dialog', {
+            name: 'Reset to default template',
+        })
+        await user.click(within(confirmDialogAgain).getByRole('button', { name: 'Reset' }))
+
+        await waitFor(() => {
+            expect(within(dialog).getByLabelText<HTMLTextAreaElement>('HTML').value).toBe(
+                '<p>Default template</p>',
+            )
+        })
     })
 })
 

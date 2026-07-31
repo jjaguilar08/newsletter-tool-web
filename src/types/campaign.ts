@@ -26,10 +26,13 @@ export interface Campaign {
 export interface CampaignInput {
     subject: string
     content: string
-    // Both optional and sent together or not at all - see
-    // CampaignFormModal's handleSubmit for when these are populated.
+    // Optional and sent together (HTML editor/Visual builder modes) or not
+    // at all (Plain text mode) - see CampaignFormModal's handleSubmit. The
+    // `| null` on design_json lets HTML editor mode explicitly clear a
+    // previously-saved GrapesJS design when switching away from it, rather
+    // than leaving stale design_json alongside HTML that no longer matches.
     body_html?: string
-    design_json?: Record<string, unknown>
+    design_json?: Record<string, unknown> | null
 }
 
 export type CampaignUpdateInput = Partial<CampaignInput>
@@ -43,5 +46,11 @@ export interface ListCampaignsParams {
 // wrapped in { data: ... } like store/update.
 export interface CampaignPreview {
     subject: string
+    html: string
+}
+
+// Matches CampaignController::defaultTemplate()'s response shape - not
+// wrapped in { data: ... }, same as CampaignPreview above.
+export interface CampaignDefaultTemplate {
     html: string
 }

@@ -97,3 +97,11 @@ export const modalPanelXWide =
 
 export const formStack = 'space-y-4'
 export const modalActions = 'mt-6 flex justify-end gap-3'
+
+export const tabList = 'flex gap-1 border-b border-slate-200'
+const tabBase =
+    'rounded-t-md border border-b-0 border-transparent px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500'
+export const tabActive = `${tabBase} border-slate-300 bg-white text-indigo-700`
+export const tabInactive = `${tabBase} text-slate-500 hover:text-slate-700`
+
+export const monospaceTextarea = `${textarea} min-h-64 font-mono text-xs`

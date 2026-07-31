@@ -2,6 +2,7 @@ import { apiClient } from '../lib/apiClient'
 import type { Paginated } from '../types/pagination'
 import type {
     Campaign,
+    CampaignDefaultTemplate,
     CampaignInput,
     CampaignPreview,
     CampaignUpdateInput,
@@ -67,4 +68,9 @@ export function uploadCampaignAsset(file: File): Promise<{ url: string }> {
     const formData = new FormData()
     formData.set('image', file)
     return apiClient.postForm<{ url: string }>('/api/campaigns/assets', formData)
+}
+
+// Not wrapped in { data: ... } - see CampaignDefaultTemplate's comment.
+export function getDefaultCampaignTemplate(): Promise<CampaignDefaultTemplate> {
+    return apiClient.get<CampaignDefaultTemplate>('/api/campaigns/default-template')
 }
