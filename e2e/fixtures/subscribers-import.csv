@@ -1,0 +1,4 @@
+email,name
+e2e-import-one@example.com,E2E Import One
+e2e-import-two@example.com,E2E Import Two
+not-an-email,Invalid Row

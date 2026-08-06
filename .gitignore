@@ -16,6 +16,11 @@ dist-ssr
 .env
 coverage
 
+# Playwright E2E run artifacts - reports/traces from local runs, not source
+playwright-report
+test-results
+blob-report
+
 # Personal notes copied from other projects, not for this repo
 PROJECT_NOTES.md
 CLAUDE.md

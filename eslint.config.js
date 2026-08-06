@@ -14,6 +14,14 @@ export default tseslint.config(
             ecmaVersion: 2020,
             globals: globals.browser,
         },
+    },
+    {
+        // React-specific rules scoped to the app itself - e2e/ is
+        // Playwright test code, not React, and its fixture functions'
+        // `use` parameter (see e2e/support/fixtures.ts) otherwise trips
+        // react-hooks/rules-of-hooks on identifier-name alone, the same
+        // category of false positive grapesjs's usePlugin hit (Day 18).
+        files: ['src/**/*.{ts,tsx}'],
         plugins: {
             'react-hooks': reactHooks,
             'react-refresh': reactRefresh,
